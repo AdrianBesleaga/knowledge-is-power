@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import { updateGraphVisibility, setAuthToken } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
+import { KnowledgeGraph } from '../types/graph';
+import { InfographicGenerator } from './InfographicGenerator';
 import './ShareButton.css';
 
 interface ShareButtonProps {
   url: string;
   slug?: string;
+  graph?: KnowledgeGraph;
   onVisibilityChange?: (isPublic: boolean) => void;
 }
 
-export const ShareButton = ({ url, slug, onVisibilityChange }: ShareButtonProps) => {
+export const ShareButton = ({ url, slug, graph, onVisibilityChange }: ShareButtonProps) => {
   const [copied, setCopied] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [showInfographic, setShowInfographic] = useState(false);
   const { user, getIdToken } = useAuth();
 
   const handleShare = async () => {
@@ -45,13 +49,32 @@ export const ShareButton = ({ url, slug, onVisibilityChange }: ShareButtonProps)
   };
 
   return (
-    <button 
-      className="share-button" 
-      onClick={handleShare}
-      disabled={updating}
-    >
-      {updating ? 'Updating...' : copied ? '✓ Copied!' : '🔗 Share'}
-    </button>
+    <>
+      <div className="share-button-group">
+        <button 
+          className="share-button" 
+          onClick={handleShare}
+          disabled={updating}
+        >
+          {updating ? 'Updating...' : copied ? '✓ Copied!' : '🔗 Share'}
+        </button>
+        {graph && (
+          <button
+            className="share-button infographic-button"
+            onClick={() => setShowInfographic(true)}
+            title="Generate infographic for social media"
+          >
+            📊 Infographic
+          </button>
+        )}
+      </div>
+      {showInfographic && graph && (
+        <InfographicGenerator
+          graph={graph}
+          onClose={() => setShowInfographic(false)}
+        />
+      )}
+    </>
   );
 };
 

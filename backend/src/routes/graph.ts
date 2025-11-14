@@ -29,8 +29,12 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
       return;
     }
 
-    // Generate knowledge graph using AI
+    console.log(`[API] Graph generation request received for topic: "${topic.trim()}" by user: ${req.user.uid}`);
+    
+    // Generate knowledge graph using AI (fixed to 3 levels)
     const result = await aiService.generateKnowledgeGraph(topic.trim());
+
+    console.log(`[API] Graph generation completed successfully: ${result.nodes.length} nodes, ${result.edges.length} edges`);
 
     res.json({
       success: true,
@@ -40,7 +44,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
       edges: result.edges,
     });
   } catch (error) {
-    console.error('Error generating graph:', error);
+    console.error('[API] Error generating graph:', error);
     res.status(500).json({ 
       error: 'Failed to generate knowledge graph',
       details: error instanceof Error ? error.message : 'Unknown error'

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
-import { generateGraph, saveGraph, setAuthToken } from '../services/api';
+import { generateGraph, saveGraph, setAuthToken, getPopularGraphs } from '../services/api';
 import { KnowledgeGraph } from '../components/KnowledgeGraph';
 import { NodeDetailPanel } from '../components/NodeDetailPanel';
 import { SaveGraphButton } from '../components/SaveGraphButton';
@@ -9,7 +9,7 @@ import { ShareButton } from '../components/ShareButton';
 import { UserProfile } from '../components/UserProfile';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../hooks/useAuth';
-import { GraphNode, GraphEdge } from '../types/graph';
+import { GraphNode, GraphEdge, KnowledgeGraph as KnowledgeGraphType } from '../types/graph';
 import './HomePage.css';
 
 export const HomePage = () => {
@@ -24,6 +24,24 @@ export const HomePage = () => {
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingTopic, setPendingTopic] = useState<string | null>(null);
+  const [popularGraphs, setPopularGraphs] = useState<KnowledgeGraphType[]>([]);
+  const [loadingPopular, setLoadingPopular] = useState(true);
+
+  // Load popular graphs on mount
+  useEffect(() => {
+    const loadPopularGraphs = async () => {
+      try {
+        setLoadingPopular(true);
+        const result = await getPopularGraphs(30, 30); // Top 30 from last 30 days
+        setPopularGraphs(result.graphs);
+      } catch (err) {
+        console.error('Error loading popular graphs:', err);
+      } finally {
+        setLoadingPopular(false);
+      }
+    };
+    loadPopularGraphs();
+  }, []);
 
   // Auto-generate graph after successful authentication if there's a pending topic
   useEffect(() => {
@@ -199,6 +217,52 @@ export const HomePage = () => {
             <div className="info-text">
               💡 Click on any node to see detailed information and sources
             </div>
+          </div>
+        )}
+
+        {!loading && nodes.length === 0 && (
+          <div className="popular-graphs-section">
+            <div className="section-header">
+              <h2>Top 30 Popular Graphs</h2>
+              <p className="section-subtitle">Most viewed knowledge graphs from the last 30 days</p>
+            </div>
+
+            {loadingPopular ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading popular graphs...</p>
+              </div>
+            ) : popularGraphs.length > 0 ? (
+              <div className="graphs-grid">
+                {popularGraphs.map((graph) => (
+                  <div
+                    key={graph.id}
+                    className="graph-card"
+                    onClick={() => navigate(`/graph/${graph.slug}`)}
+                  >
+                    <h3>{graph.topic}</h3>
+                    <div className="graph-card-meta">
+                      <span className="date">
+                        {new Date(graph.createdAt).toLocaleDateString()}
+                      </span>
+                      <span>•</span>
+                      <span className="views">{graph.viewCount} views</span>
+                    </div>
+                    <div className="graph-card-footer">
+                      <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
+                        {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">📊</div>
+                <h3>No popular graphs yet</h3>
+                <p>Be the first to create and share a knowledge graph!</p>
+              </div>
+            )}
           </div>
         )}
       </main>

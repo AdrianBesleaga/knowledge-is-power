@@ -168,6 +168,122 @@
   font-size: 0.95rem;
 }
 
+.popular-graphs-section {
+  margin-top: 4rem;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.section-header h2 {
+  font-size: 2rem;
+  color: #1a1a1a;
+  margin: 0 0 0.5rem 0;
+}
+
+.section-subtitle {
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+}
+
+.graphs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.graph-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.graph-card:hover {
+  border-color: #667eea;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+}
+
+.graph-card h3 {
+  color: #1a1a1a;
+  font-size: 1.25rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.graph-card-meta {
+  display: flex;
+  gap: 0.75rem;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.graph-card-meta .date {
+  color: #666;
+}
+
+.graph-card-meta .views {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.graph-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.visibility-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.visibility-badge.public {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+.visibility-badge.private {
+  background: rgba(158, 158, 158, 0.1);
+  color: #9e9e9e;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  color: #333;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.empty-state p {
+  color: #666;
+  margin: 0;
+  font-size: 1rem;
+}
+
 @media (max-width: 768px) {
   .hero-title {
     font-size: 2rem;
@@ -193,6 +309,15 @@
 
   .action-buttons button {
     width: 100%;
+  }
+
+  .section-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .graphs-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 

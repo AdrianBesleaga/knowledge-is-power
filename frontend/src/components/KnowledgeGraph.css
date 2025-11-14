@@ -4,7 +4,34 @@
   position: relative;
   background: #fafafa;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.show-all-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.show-all-button:hover {
+  background: #5568d3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.show-all-button:active {
+  transform: translateY(0);
 }
 
 .graph-legend {
@@ -59,6 +86,36 @@
   background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
 }
 
+.legend-divider {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 0.75rem 0;
+}
+
+.legend-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.legend-line {
+  width: 30px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.legend-line.strong {
+  background: #667eea;
+  box-shadow: 0 0 4px rgba(102, 126, 234, 0.4);
+}
+
+.legend-line.weak {
+  background: #999;
+}
+
 /* React Flow customizations */
 .react-flow__controls {
   bottom: 160px;
@@ -66,5 +123,33 @@
 
 .react-flow__attribution {
   display: none;
+}
+
+/* Ensure all edges are solid lines, not dotted or dashed */
+.react-flow__edge-path {
+  stroke-dasharray: 0 !important;
+}
+
+.react-flow__edge {
+  stroke-dasharray: 0 !important;
+}
+
+/* Ensure nodes and tooltips appear above ReactFlow viewport */
+.react-flow__node {
+  z-index: 1000 !important;
+  overflow: visible !important;
+}
+
+.react-flow__viewport {
+  z-index: 1;
+  overflow: visible !important;
+}
+
+.react-flow {
+  overflow: visible !important;
+}
+
+.react-flow__renderer {
+  overflow: visible !important;
 }
 

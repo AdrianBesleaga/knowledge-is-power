@@ -20,6 +20,7 @@ export const setAuthToken = (token: string | null) => {
 
 export const generateGraph = async (topic: string): Promise<{
   topic: string;
+  summary: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
 }> => {
@@ -31,7 +32,8 @@ export const saveGraph = async (
   topic: string,
   nodes: GraphNode[],
   edges: GraphEdge[],
-  isPublic: boolean = true
+  isPublic: boolean = true,
+  summary: string = ''
 ): Promise<{
   success: boolean;
   graph: KnowledgeGraph;
@@ -39,6 +41,7 @@ export const saveGraph = async (
 }> => {
   const response = await api.post('/api/graph/save', {
     topic,
+    summary,
     nodes,
     edges,
     isPublic,
@@ -62,5 +65,87 @@ export const getUserProfile = async (): Promise<{
 }> => {
   const response = await api.get('/api/user/profile');
   return response.data.user;
+};
+
+export interface SearchGraphsResponse {
+  success: boolean;
+  graphs: KnowledgeGraph[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface SearchNodesResponse {
+  success: boolean;
+  nodes: GraphNode[];
+  graphs: string[];
+}
+
+export const searchGraphs = async (
+  query: string,
+  limit: number = 20,
+  offset: number = 0,
+  userId?: string
+): Promise<SearchGraphsResponse> => {
+  const params: any = { q: query, limit, offset };
+  if (userId) {
+    params.userId = userId;
+  }
+  const response = await api.get('/api/graph/search', { params });
+  return response.data;
+};
+
+export const searchNodes = async (
+  query: string,
+  category?: string,
+  limit: number = 50
+): Promise<SearchNodesResponse> => {
+  const params: any = { q: query, limit };
+  if (category) {
+    params.category = category;
+  }
+  const response = await api.get('/api/graph/search/nodes', { params });
+  return response.data;
+};
+
+export const getRelatedGraphs = async (
+  slug: string,
+  limit: number = 10
+): Promise<{ success: boolean; graphs: KnowledgeGraph[] }> => {
+  const response = await api.get(`/api/graph/${slug}/related`, {
+    params: { limit },
+  });
+  return response.data;
+};
+
+export const getGraphsByCategory = async (
+  category: string,
+  limit: number = 20,
+  offset: number = 0
+): Promise<SearchGraphsResponse> => {
+  const response = await api.get(`/api/graph/category/${category}`, {
+    params: { limit, offset },
+  });
+  return response.data;
+};
+
+export const getPopularGraphs = async (
+  limit: number = 20,
+  days: number = 30
+): Promise<{ success: boolean; graphs: KnowledgeGraph[] }> => {
+  const response = await api.get('/api/graph/popular', {
+    params: { limit, days },
+  });
+  return response.data;
+};
+
+export const updateGraphVisibility = async (
+  slug: string,
+  isPublic: boolean
+): Promise<{ success: boolean; graph: KnowledgeGraph }> => {
+  const response = await api.patch(`/api/graph/${slug}/visibility`, {
+    isPublic,
+  });
+  return response.data;
 };
 

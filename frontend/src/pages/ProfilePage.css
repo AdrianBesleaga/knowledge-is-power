@@ -1,0 +1,140 @@
+.profile-page {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #f9fafb, #ffffff);
+}
+
+.profile-header {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.profile-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.profile-info {
+  margin-bottom: 2rem;
+}
+
+.profile-info h2 {
+  margin: 0 0 0.5rem;
+  color: #1a1a1a;
+  font-size: 2rem;
+}
+
+.user-email {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem;
+  color: #1a1a1a;
+  font-size: 1.5rem;
+}
+
+.empty-state p {
+  margin: 0 0 2rem;
+  color: #666;
+}
+
+.btn-primary {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+.graphs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.graph-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.graph-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.graph-card h3 {
+  margin: 0 0 1rem;
+  color: #1a1a1a;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.graph-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.graph-card-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.visibility-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.visibility-badge.public {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.visibility-badge.private {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+@media (max-width: 768px) {
+  .graphs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

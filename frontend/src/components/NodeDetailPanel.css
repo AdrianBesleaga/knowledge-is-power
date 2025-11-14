@@ -1,0 +1,162 @@
+.node-detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.node-detail-panel {
+  background: white;
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 2rem;
+  position: relative;
+  animation: slideUp 0.3s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.panel-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.panel-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.panel-header {
+  margin-bottom: 1.5rem;
+  padding-right: 2rem;
+}
+
+.panel-header h2 {
+  margin: 0 0 0.5rem;
+  color: #1a1a1a;
+  font-size: 1.75rem;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #f0f0f0;
+  color: #666;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.impact-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 12px;
+}
+
+.impact-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.impact-bar-bg {
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.impact-bar-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+  border-radius: 6px;
+}
+
+.impact-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.impact-score {
+  font-size: 1.1rem;
+}
+
+.panel-section {
+  margin-bottom: 1.5rem;
+}
+
+.panel-section:last-child {
+  margin-bottom: 0;
+}
+
+.panel-section h3 {
+  margin: 0 0 0.75rem;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.panel-section p {
+  margin: 0;
+  color: #666;
+  line-height: 1.6;
+}
+
+.sources-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #666;
+}
+
+.sources-list li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.sources-list li:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .node-detail-overlay {
+    padding: 1rem;
+  }
+
+  .node-detail-panel {
+    padding: 1.5rem;
+    max-height: 90vh;
+  }
+
+  .panel-header h2 {
+    font-size: 1.5rem;
+  }
+}
+

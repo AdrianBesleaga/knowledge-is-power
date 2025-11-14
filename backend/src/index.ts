@@ -1,0 +1,95 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { initFirebase } from './config/firebase';
+import { initNeo4j, closeNeo4j } from './config/neo4j';
+import graphRoutes from './routes/graph';
+import userRoutes from './routes/user';
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+// Middleware
+app.use(cors({
+  origin: FRONTEND_URL,
+  credentials: true,
+}));
+app.use(express.json());
+
+// Initialize services
+try {
+  initFirebase();
+  console.log('✅ Firebase initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize Firebase:', error);
+  process.exit(1);
+}
+
+try {
+  initNeo4j();
+  console.log('✅ Neo4j initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize Neo4j:', error);
+  process.exit(1);
+}
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// API routes
+app.use('/api/graph', graphRoutes);
+app.use('/api/user', userRoutes);
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// Error handler
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    details: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+// Start server
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Frontend URL: ${FRONTEND_URL}`);
+});
+
+// Graceful shutdown
+const shutdown = async () => {
+  console.log('\n🛑 Shutting down gracefully...');
+  
+  server.close(async () => {
+    console.log('✅ HTTP server closed');
+    
+    try {
+      await closeNeo4j();
+      console.log('✅ Neo4j connection closed');
+    } catch (error) {
+      console.error('❌ Error closing Neo4j:', error);
+    }
+    
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    console.error('⚠️ Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+

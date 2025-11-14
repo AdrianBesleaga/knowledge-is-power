@@ -12,7 +12,8 @@ export class GraphService {
     nodes: GraphNode[],
     edges: GraphEdge[],
     userId: string | null,
-    isPublic: boolean = true
+    isPublic: boolean = true,
+    summary: string = ''
   ): Promise<KnowledgeGraph> {
     const driver = getNeo4jDriver();
     const session = driver.session();
@@ -31,6 +32,7 @@ export class GraphService {
           slug: $slug,
           topic: $topic,
           label: $label,
+          summary: $summary,
           userId: $userId,
           isPublic: $isPublic,
           viewCount: 0,
@@ -43,6 +45,7 @@ export class GraphService {
           slug,
           topic,
           label: graphId,
+          summary: summary || '',
           userId,
           isPublic,
           viewCount: neo4j.int(0),
@@ -106,6 +109,7 @@ export class GraphService {
         slug,
         topic,
         label: graphId,
+        summary: summary || '',
         nodes,
         edges,
         createdAt,
@@ -227,6 +231,7 @@ export class GraphService {
         slug: graphProps.slug,
         topic: graphProps.topic,
         label: graphProps.label || graphProps.id,
+        summary: graphProps.summary || '',
         nodes,
         edges,
         createdAt,
@@ -288,6 +293,7 @@ export class GraphService {
           slug: graphProps.slug,
           topic: graphProps.topic,
           label: graphProps.label || graphProps.id,
+          summary: graphProps.summary || '',
           nodes: [], // Empty for list view
           edges: [], // Empty for list view
           createdAt,
@@ -480,6 +486,7 @@ export class GraphService {
           slug: graphProps.slug,
           topic: graphProps.topic,
           label: graphProps.label || graphProps.id,
+          summary: graphProps.summary || '',
           nodes: [], // Empty for search results
           edges: [], // Empty for search results
           createdAt,
@@ -650,6 +657,7 @@ export class GraphService {
           slug: graphProps.slug,
           topic: graphProps.topic,
           label: graphProps.label || graphProps.id,
+          summary: graphProps.summary || '',
           nodes: [],
           edges: [],
           createdAt,
@@ -727,6 +735,7 @@ export class GraphService {
           slug: graphProps.slug,
           topic: graphProps.topic,
           label: graphProps.label || graphProps.id,
+          summary: graphProps.summary || '',
           nodes: [],
           edges: [],
           createdAt,
@@ -798,6 +807,7 @@ export class GraphService {
           slug: graphProps.slug,
           topic: graphProps.topic,
           label: graphProps.label || graphProps.id,
+          summary: graphProps.summary || '',
           nodes: [],
           edges: [],
           createdAt,

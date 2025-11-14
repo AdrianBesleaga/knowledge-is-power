@@ -141,6 +141,18 @@
   line-height: 1.5;
 }
 
+.source-link {
+  color: #2563eb;
+  text-decoration: none;
+  word-break: break-all;
+  transition: color 0.2s;
+}
+
+.source-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
 .sources-list li:last-child {
   margin-bottom: 0;
 }

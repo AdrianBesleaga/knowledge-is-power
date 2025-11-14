@@ -20,6 +20,7 @@ export const setAuthToken = (token: string | null) => {
 
 export const generateGraph = async (topic: string): Promise<{
   topic: string;
+  summary: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
 }> => {
@@ -31,7 +32,8 @@ export const saveGraph = async (
   topic: string,
   nodes: GraphNode[],
   edges: GraphEdge[],
-  isPublic: boolean = true
+  isPublic: boolean = true,
+  summary: string = ''
 ): Promise<{
   success: boolean;
   graph: KnowledgeGraph;
@@ -39,6 +41,7 @@ export const saveGraph = async (
 }> => {
   const response = await api.post('/api/graph/save', {
     topic,
+    summary,
     nodes,
     edges,
     isPublic,

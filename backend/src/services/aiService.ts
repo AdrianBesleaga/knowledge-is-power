@@ -18,6 +18,7 @@ const getOpenAIClient = (): OpenAI => {
 };
 
 interface AIResponse {
+  summary: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
 }
@@ -35,7 +36,10 @@ export class AIService {
       const nodes = this.createNodesFromAnalysis(topic, factorAnalysis);
       const edges = this.createEdgesFromAnalysis(factorAnalysis);
       
-      return { nodes, edges };
+      // Step 3: Generate a summary/conclusion for the graph
+      const summary = await this.generateGraphSummary(topic, factorAnalysis);
+      
+      return { summary, nodes, edges };
     } catch (error: any) {
       console.error('Error generating knowledge graph:', error);
       
@@ -72,7 +76,7 @@ For each factor, provide:
 2. A clear name/label
 3. A detailed description/summary (2-3 sentences)
 4. A category (choose from: "social", "news", "economic", "technical", "political", "environmental")
-5. Example sources where this information might be found (e.g., specific subreddits, news outlets, economic indicators)
+5. Example sources where this information might be found - provide actual URLs/links (e.g., https://www.reddit.com/r/subreddit, https://news.outlet.com/article, https://data.source.com/indicator). Each source must be a valid URL starting with http:// or https://
 6. An impact score from -1 to 1, where:
    - Positive values (0 to 1) indicate factors that positively influence the topic
    - Negative values (-1 to 0) indicate factors that negatively influence the topic
@@ -91,7 +95,7 @@ Respond ONLY with valid JSON in this exact format:
       "name": "Factor Name",
       "description": "Detailed description of this factor and how it relates to the topic.",
       "category": "economic",
-      "sources": ["Source 1", "Source 2"],
+      "sources": ["https://example.com/source1", "https://example.com/source2"],
       "impactScore": 0.8
     }
   ],
@@ -141,6 +145,30 @@ Respond ONLY with valid JSON in this exact format:
   }
 
   /**
+   * Normalize sources to ensure they are valid URLs
+   */
+  private normalizeSources(sources: string[]): string[] {
+    return sources.map(source => {
+      // If source is already a URL, return as is
+      if (source.startsWith('http://') || source.startsWith('https://')) {
+        return source;
+      }
+      // If source looks like a domain, add https://
+      if (source.includes('.') && !source.includes(' ')) {
+        return `https://${source}`;
+      }
+      // Otherwise, try to construct a URL from common patterns
+      // For Reddit subreddits
+      if (source.startsWith('r/') || source.startsWith('/r/')) {
+        const subreddit = source.replace(/^\/?r\//, '');
+        return `https://www.reddit.com/r/${subreddit}`;
+      }
+      // For news outlets or other sources, return as is (will be displayed as text in frontend)
+      return source;
+    });
+  }
+
+  /**
    * Convert AI factor analysis to graph nodes
    */
   private createNodesFromAnalysis(topic: string, analysis: AIFactorAnalysis): GraphNode[] {
@@ -162,7 +190,7 @@ Respond ONLY with valid JSON in this exact format:
         id: factor.id,
         label: factor.name,
         summary: factor.description,
-        sources: factor.sources,
+        sources: this.normalizeSources(factor.sources),
         impactScore: factor.impactScore,
         category: factor.category,
       });
@@ -198,6 +226,55 @@ Respond ONLY with valid JSON in this exact format:
     }
 
     return edges;
+  }
+
+  /**
+   * Generate a summary/conclusion for the knowledge graph
+   */
+  private async generateGraphSummary(topic: string, analysis: AIFactorAnalysis): Promise<string> {
+    const factorsSummary = analysis.factors
+      .map(f => `${f.name} (${f.impactScore >= 0 ? 'positive' : 'negative'} impact)`)
+      .join(', ');
+
+    const prompt = `Based on the following knowledge graph analysis, provide a comprehensive summary and conclusion.
+
+Topic: "${topic}"
+
+Key Factors Identified:
+${factorsSummary}
+
+Provide a 3-4 sentence summary that:
+1. Synthesizes the main insights about the topic
+2. Highlights the most significant positive and negative factors
+3. Draws a conclusion about the overall dynamics and relationships
+4. Is written in clear, accessible language
+
+Respond with ONLY the summary text, no additional formatting or labels.`;
+
+    try {
+      const completion = await getOpenAIClient().chat.completions.create({
+        model: "gpt-4-turbo-preview",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert analyst who creates clear, insightful summaries. Respond with only the summary text, no additional formatting."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 300,
+      });
+
+      const summary = completion.choices[0].message.content?.trim() || '';
+      return summary || `This knowledge graph explores ${topic} through multiple interconnected factors and their relationships.`;
+    } catch (error) {
+      console.error('Error generating graph summary:', error);
+      // Fallback summary if AI generation fails
+      return `This knowledge graph explores ${topic} through ${analysis.factors.length} key factors and their relationships. The analysis reveals both positive and negative influences that shape the topic's dynamics.`;
+    }
   }
 }
 

@@ -67,9 +67,25 @@ export const NodeDetailPanel = ({ node, onClose }: NodeDetailPanelProps) => {
           <div className="panel-section">
             <h3>Information Sources</h3>
             <ul className="sources-list">
-              {node.sources.map((source, idx) => (
-                <li key={idx}>{source}</li>
-              ))}
+              {node.sources.map((source, idx) => {
+                const isUrl = source.startsWith('http://') || source.startsWith('https://');
+                return (
+                  <li key={idx}>
+                    {isUrl ? (
+                      <a
+                        href={source}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="source-link"
+                      >
+                        {source}
+                      </a>
+                    ) : (
+                      source
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

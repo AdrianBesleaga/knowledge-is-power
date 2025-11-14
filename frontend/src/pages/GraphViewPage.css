@@ -37,6 +37,28 @@
   gap: 2rem;
 }
 
+.graph-summary-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+}
+
+.graph-summary-section h3 {
+  margin: 0 0 0.75rem;
+  color: #333;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.graph-summary {
+  margin: 0;
+  color: #555;
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
 .graph-info h2 {
   margin: 0 0 0.5rem;
   color: #1a1a1a;

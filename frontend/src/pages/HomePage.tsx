@@ -17,6 +17,7 @@ export const HomePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [topic, setTopic] = useState('');
+  const [summary, setSummary] = useState('');
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -52,6 +53,7 @@ export const HomePage = () => {
         setLoading(true);
         setError(null);
         setTopic(topic);
+        setSummary('');
         setSavedUrl(null);
 
         try {
@@ -62,6 +64,7 @@ export const HomePage = () => {
           }
 
           const result = await generateGraph(topic);
+          setSummary(result.summary);
           setNodes(result.nodes);
           setEdges(result.edges);
         } catch (err: any) {
@@ -92,6 +95,7 @@ export const HomePage = () => {
     setLoading(true);
     setError(null);
     setTopic(searchTopic);
+    setSummary('');
     setSavedUrl(null);
 
     try {
@@ -102,6 +106,7 @@ export const HomePage = () => {
       }
 
       const result = await generateGraph(searchTopic);
+      setSummary(result.summary);
       setNodes(result.nodes);
       setEdges(result.edges);
     } catch (err: any) {
@@ -129,7 +134,7 @@ export const HomePage = () => {
         setAuthToken(token);
       }
 
-      const result = await saveGraph(topic, nodes, edges, true);
+      const result = await saveGraph(topic, nodes, edges, true, summary);
       setSavedUrl(result.url);
       
       // Navigate to the saved graph

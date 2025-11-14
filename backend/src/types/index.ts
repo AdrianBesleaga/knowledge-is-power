@@ -19,6 +19,7 @@ export interface KnowledgeGraph {
   slug: string;
   topic: string;
   label: string;
+  summary: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
   createdAt: Date;
@@ -33,6 +34,7 @@ export interface GenerateGraphRequest {
 
 export interface SaveGraphRequest {
   topic: string;
+  summary?: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
   isPublic: boolean;

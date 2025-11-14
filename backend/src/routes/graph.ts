@@ -35,6 +35,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
     res.json({
       success: true,
       topic: topic.trim(),
+      summary: result.summary,
       nodes: result.nodes,
       edges: result.edges,
     });
@@ -53,7 +54,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
  */
 router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { topic, nodes, edges, isPublic } = req.body as SaveGraphRequest;
+    const { topic, summary, nodes, edges, isPublic } = req.body as SaveGraphRequest;
 
     if (!topic || !nodes || !edges) {
       res.status(400).json({ error: 'Topic, nodes, and edges are required' });
@@ -71,7 +72,8 @@ router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) 
       nodes,
       edges,
       req.user.uid,
-      isPublic !== false // Default to true
+      isPublic !== false, // Default to true
+      summary || ''
     );
 
     res.json({

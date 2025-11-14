@@ -103,6 +103,13 @@ export const GraphViewPage = () => {
           <ShareButton url={`/graph/${graph.slug}`} />
         </div>
 
+        {graph.summary && (
+          <div className="graph-summary-section">
+            <h3>Summary</h3>
+            <p className="graph-summary">{graph.summary}</p>
+          </div>
+        )}
+
         <div className="graph-display">
           <KnowledgeGraph
             nodes={graph.nodes}

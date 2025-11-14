@@ -87,9 +87,9 @@ npm run dev
 
 ## Need More Help?
 
-- Detailed setup: See `SETUP.md`
-- Deployment: See `DEPLOYMENT.md`
-- Architecture: See `PROJECT_SUMMARY.md`
+- Detailed setup: See `docs/SETUP.md`
+- Deployment: See `docs/DEPLOYMENT.md`
+- Architecture: See `docs/PROJECT_SUMMARY.md`
 
 ## Quick Commands Reference
 
@@ -112,5 +112,4 @@ npm run preview      # Preview production build
 3. Share it with the generated URL
 4. Check your profile to see saved graphs
 
-Ready to deploy? Check out `DEPLOYMENT.md`!
-
+Ready to deploy? Check out `docs/DEPLOYMENT.md`!

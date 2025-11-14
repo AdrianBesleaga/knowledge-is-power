@@ -1,13 +1,25 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import { initFirebase } from './config/firebase';
 import { initNeo4j, closeNeo4j } from './config/neo4j';
 import graphRoutes from './routes/graph';
 import userRoutes from './routes/user';
 
 // Load environment variables
-dotenv.config();
+// Resolve .env path relative to backend directory
+const envPath = path.resolve(process.cwd(), '.env');
+dotenv.config({ path: envPath });
+
+// Verify critical environment variables are loaded
+if (!process.env.OPENAI_API_KEY) {
+  console.error('❌ ERROR: OPENAI_API_KEY is not set in .env file');
+  console.error('   Please make sure:');
+  console.error('   1. You have a .env file in the backend/ directory');
+  console.error('   2. It contains: OPENAI_API_KEY=sk-your-key-here');
+  process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;

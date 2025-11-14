@@ -1,9 +1,21 @@
 import OpenAI from 'openai';
 import { AIFactorAnalysis, GraphNode, GraphEdge } from '../types';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to ensure dotenv is loaded first
+let openai: OpenAI | null = null;
+
+const getOpenAIClient = (): OpenAI => {
+  if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY environment variable is not set. Please check your .env file.');
+    }
+    openai = new OpenAI({
+      apiKey,
+    });
+  }
+  return openai;
+};
 
 interface AIResponse {
   nodes: GraphNode[];
@@ -24,9 +36,26 @@ export class AIService {
       const edges = this.createEdgesFromAnalysis(factorAnalysis);
       
       return { nodes, edges };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating knowledge graph:', error);
-      throw new Error('Failed to generate knowledge graph');
+      
+      // Handle specific OpenAI API errors
+      if (error?.code === 'insufficient_quota') {
+        throw new Error(
+          'OpenAI API quota exceeded. Please add a payment method to your OpenAI account at https://platform.openai.com/account/billing. ' +
+          'Even free credits require billing information to be set up.'
+        );
+      }
+      
+      if (error?.code === 'invalid_api_key') {
+        throw new Error('Invalid OpenAI API key. Please check your OPENAI_API_KEY in the .env file.');
+      }
+      
+      if (error?.message) {
+        throw new Error(`OpenAI API error: ${error.message}`);
+      }
+      
+      throw new Error('Failed to generate knowledge graph. Please check your OpenAI API configuration.');
     }
   }
 
@@ -76,21 +105,31 @@ Respond ONLY with valid JSON in this exact format:
   ]
 }`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert analyst who creates detailed knowledge graphs. Always respond with valid JSON only, no additional text."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      response_format: { type: "json_object" }
-    });
+    let completion;
+    try {
+      completion = await getOpenAIClient().chat.completions.create({
+        model: "gpt-4-turbo-preview",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert analyst who creates detailed knowledge graphs. Always respond with valid JSON only, no additional text."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      });
+    } catch (error: any) {
+      // Re-throw with more context
+      if (error?.error) {
+        error.code = error.error.code;
+        error.message = error.error.message;
+      }
+      throw error;
+    }
 
     const content = completion.choices[0].message.content;
     if (!content) {

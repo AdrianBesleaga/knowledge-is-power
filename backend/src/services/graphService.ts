@@ -22,6 +22,7 @@ export class GraphService {
       const createdAt = new Date();
 
       // Create graph metadata node
+      // Store createdAt as ISO string for easier retrieval
       await session.run(
         `
         CREATE (g:Graph {
@@ -31,7 +32,7 @@ export class GraphService {
           userId: $userId,
           isPublic: $isPublic,
           viewCount: 0,
-          createdAt: datetime($createdAt)
+          createdAt: $createdAt
         })
         RETURN g
         `,
@@ -156,12 +157,17 @@ export class GraphService {
 
       const nodes: GraphNode[] = nodesResult.records.map((record) => {
         const node = record.get('n').properties;
+        // Convert BigInt to Number for impactScore
+        const impactScore = typeof node.impactScore === 'bigint' 
+          ? Number(node.impactScore) 
+          : (node.impactScore !== undefined && node.impactScore !== null ? Number(node.impactScore) : 0);
+        
         return {
           id: node.id,
           label: node.label,
           summary: node.summary,
           sources: node.sources || [],
-          impactScore: node.impactScore,
+          impactScore,
           category: node.category,
         };
       });
@@ -178,13 +184,38 @@ export class GraphService {
 
       const edges: GraphEdge[] = edgesResult.records.map((record) => {
         const rel = record.get('r').properties;
+        // Convert BigInt to Number for strength
+        const strength = typeof rel.strength === 'bigint' 
+          ? Number(rel.strength) 
+          : (rel.strength !== undefined && rel.strength !== null ? Number(rel.strength) : 0);
+        
         return {
           source: record.get('sourceId'),
           target: record.get('targetId'),
           relationship: rel.relationship,
-          strength: rel.strength,
+          strength,
         };
       });
+
+      // Convert BigInt to Number for viewCount - handle all cases
+      let viewCount: number;
+      if (graphProps.viewCount === undefined || graphProps.viewCount === null) {
+        viewCount = 0;
+      } else if (typeof graphProps.viewCount === 'bigint') {
+        viewCount = Number(graphProps.viewCount);
+      } else {
+        viewCount = Number(graphProps.viewCount);
+      }
+      
+      // Handle datetime conversion - Neo4j datetime can be a string or object
+      let createdAt: Date;
+      if (typeof graphProps.createdAt === 'string') {
+        createdAt = new Date(graphProps.createdAt);
+      } else if (graphProps.createdAt && typeof graphProps.createdAt.toString === 'function') {
+        createdAt = new Date(graphProps.createdAt.toString());
+      } else {
+        createdAt = new Date();
+      }
 
       return {
         id: graphProps.id,
@@ -192,10 +223,10 @@ export class GraphService {
         topic: graphProps.topic,
         nodes,
         edges,
-        createdAt: new Date(graphProps.createdAt),
+        createdAt,
         userId: graphProps.userId,
         isPublic: graphProps.isPublic,
-        viewCount: graphProps.viewCount + 1, // Include the increment we just did
+        viewCount: viewCount + 1, // Include the increment we just did
       };
     } finally {
       await session.close();
@@ -224,6 +255,26 @@ export class GraphService {
       for (const record of result.records) {
         const graphProps = record.get('g').properties;
         
+        // Convert BigInt to Number for viewCount - handle all cases
+        let viewCount: number;
+        if (graphProps.viewCount === undefined || graphProps.viewCount === null) {
+          viewCount = 0;
+        } else if (typeof graphProps.viewCount === 'bigint') {
+          viewCount = Number(graphProps.viewCount);
+        } else {
+          viewCount = Number(graphProps.viewCount);
+        }
+        
+        // Handle datetime conversion
+        let createdAt: Date;
+        if (typeof graphProps.createdAt === 'string') {
+          createdAt = new Date(graphProps.createdAt);
+        } else if (graphProps.createdAt && typeof graphProps.createdAt.toString === 'function') {
+          createdAt = new Date(graphProps.createdAt.toString());
+        } else {
+          createdAt = new Date();
+        }
+        
         // For list view, we can return graphs without full node/edge data
         // Or fetch them if needed
         graphs.push({
@@ -232,10 +283,10 @@ export class GraphService {
           topic: graphProps.topic,
           nodes: [], // Empty for list view
           edges: [], // Empty for list view
-          createdAt: new Date(graphProps.createdAt),
+          createdAt,
           userId: graphProps.userId,
           isPublic: graphProps.isPublic,
-          viewCount: graphProps.viewCount,
+          viewCount,
         });
       }
 

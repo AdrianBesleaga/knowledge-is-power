@@ -61,6 +61,14 @@ See `.env.example` files in both `backend/` and `frontend/` directories.
 4. Click on nodes to see detailed information
 5. Sign in to save and share graphs
 
+## Documentation
+
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in 5 minutes
+- **[Setup Guide](docs/SETUP.md)** - Detailed local setup instructions
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[OpenAI Setup](docs/OPENAI_SETUP.md)** - OpenAI API configuration and troubleshooting
+- **[Project Summary](docs/PROJECT_SUMMARY.md)** - Complete technical documentation
+
 ## License
 
 MIT

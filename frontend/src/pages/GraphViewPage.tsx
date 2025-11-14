@@ -100,7 +100,13 @@ export const GraphViewPage = () => {
               <span>{graph.viewCount} views</span>
             </div>
           </div>
-          <ShareButton url={`/graph/${graph.slug}`} />
+          <ShareButton 
+            url={`/graph/${graph.slug}`} 
+            slug={graph.slug}
+            onVisibilityChange={(isPublic) => {
+              setGraph({ ...graph, isPublic });
+            }}
+          />
         </div>
 
         {graph.summary && (

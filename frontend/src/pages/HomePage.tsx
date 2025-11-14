@@ -134,7 +134,7 @@ export const HomePage = () => {
         setAuthToken(token);
       }
 
-      const result = await saveGraph(topic, nodes, edges, true, summary);
+      const result = await saveGraph(topic, nodes, edges, false, summary);
       setSavedUrl(result.url);
       
       // Navigate to the saved graph
@@ -178,7 +178,12 @@ export const HomePage = () => {
               <h3>Knowledge Graph: {topic}</h3>
               {!loading && nodes.length > 0 && (
                 <div className="action-buttons">
-                  {savedUrl && <ShareButton url={savedUrl} />}
+                  {savedUrl && (
+                    <ShareButton 
+                      url={savedUrl} 
+                      slug={savedUrl.replace('/graph/', '')}
+                    />
+                  )}
                   <SaveGraphButton
                     topic={topic}
                     nodes={nodes}

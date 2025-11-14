@@ -12,7 +12,7 @@ export class GraphService {
     nodes: GraphNode[],
     edges: GraphEdge[],
     userId: string | null,
-    isPublic: boolean = true,
+    isPublic: boolean = false,
     summary: string = ''
   ): Promise<KnowledgeGraph> {
     const driver = getNeo4jDriver();
@@ -818,6 +818,50 @@ export class GraphService {
       }
 
       return graphs;
+    } finally {
+      await session.close();
+    }
+  }
+
+  /**
+   * Update graph visibility (public/private)
+   */
+  async updateGraphVisibility(
+    slug: string,
+    userId: string,
+    isPublic: boolean
+  ): Promise<KnowledgeGraph | null> {
+    const driver = getNeo4jDriver();
+    const session = driver.session();
+
+    try {
+      // First verify the graph exists and belongs to the user
+      const graphResult = await session.run(
+        `
+        MATCH (g:Graph {slug: $slug})
+        WHERE g.userId = $userId
+        RETURN g
+        `,
+        { slug, userId }
+      );
+
+      if (graphResult.records.length === 0) {
+        return null;
+      }
+
+      // Update the visibility
+      await session.run(
+        `
+        MATCH (g:Graph {slug: $slug, userId: $userId})
+        SET g.isPublic = $isPublic
+        RETURN g
+        `,
+        { slug, userId, isPublic }
+      );
+
+      // Return the updated graph
+      const updatedGraph = await this.getGraphBySlug(slug);
+      return updatedGraph;
     } finally {
       await session.close();
     }

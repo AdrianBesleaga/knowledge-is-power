@@ -72,7 +72,7 @@ router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) 
       nodes,
       edges,
       req.user.uid,
-      isPublic !== false, // Default to true
+      isPublic === true, // Default to false (private)
       summary || ''
     );
 
@@ -263,6 +263,54 @@ router.get('/popular', optionalAuth, async (req: AuthRequest, res: Response) => 
     console.error('Error getting popular graphs:', error);
     res.status(500).json({ 
       error: 'Failed to get popular graphs',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * PATCH /api/graph/:slug/visibility
+ * Update graph visibility (requires authentication, owner only)
+ */
+router.patch('/:slug/visibility', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { slug } = req.params;
+    const { isPublic } = req.body;
+
+    if (!slug) {
+      res.status(400).json({ error: 'Slug is required' });
+      return;
+    }
+
+    if (typeof isPublic !== 'boolean') {
+      res.status(400).json({ error: 'isPublic must be a boolean' });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const updatedGraph = await graphService.updateGraphVisibility(
+      slug,
+      req.user.uid,
+      isPublic
+    );
+
+    if (!updatedGraph) {
+      res.status(404).json({ error: 'Graph not found or access denied' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      graph: updatedGraph,
+    });
+  } catch (error) {
+    console.error('Error updating graph visibility:', error);
+    res.status(500).json({ 
+      error: 'Failed to update graph visibility',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

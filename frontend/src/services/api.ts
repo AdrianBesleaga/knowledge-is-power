@@ -139,3 +139,13 @@ export const getPopularGraphs = async (
   return response.data;
 };
 
+export const updateGraphVisibility = async (
+  slug: string,
+  isPublic: boolean
+): Promise<{ success: boolean; graph: KnowledgeGraph }> => {
+  const response = await api.patch(`/api/graph/${slug}/visibility`, {
+    isPublic,
+  });
+  return response.data;
+};
+

@@ -171,19 +171,27 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges }: Knowled
     });
 
     // Add children of expanded nodes (beyond level 2)
+    // Only add children if their parent is expanded
     const addChildren = (nodeId: string) => {
+      // Only proceed if this node is expanded
+      if (!expandedNodes.has(nodeId)) {
+        return;
+      }
+      
       const children = getChildren(nodeId, graphEdges);
       children.forEach(childId => {
         visible.add(childId);
-        // Recursively add children if parent is expanded
-        if (expandedNodes.has(childId)) {
-          addChildren(childId);
-        }
+        // Recursively add children if their parent is also expanded
+        addChildren(childId);
       });
     };
 
-    expandedNodes.forEach(nodeId => {
-      addChildren(nodeId);
+    // Start from level 1 and level 2 nodes that are expanded
+    graphNodes.forEach(node => {
+      const level = nodeLevels.get(node.id) || 1;
+      if ((level === 1 || level === 2) && expandedNodes.has(node.id)) {
+        addChildren(node.id);
+      }
     });
 
     return visible;

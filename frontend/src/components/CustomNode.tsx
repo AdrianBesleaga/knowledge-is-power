@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useState, useRef, useEffect } from 'react';
 import { Handle, Position } from 'reactflow';
 import { GraphNode } from '../types/graph';
 import './CustomNode.css';
@@ -14,6 +14,7 @@ interface CustomNodeProps {
 
 export const CustomNode = memo(({ data }: CustomNodeProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const getNodeClass = () => {
     if (data.category === 'central') {
@@ -64,18 +65,43 @@ export const CustomNode = memo(({ data }: CustomNodeProps) => {
     return `${strength} ${direction} impact`;
   };
 
+  const handleMouseEnter = () => {
+    // Clear any pending hide timeout
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    // Add delay before hiding to allow moving to tooltip
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 300); // 300ms delay to give time to move to tooltip
+  };
+
+  useEffect(() => {
+    // Cleanup timeout on unmount
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div 
       className="custom-node-wrapper"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Hover tooltip */}
       {isHovered && (
         <div 
           className="node-hover-tooltip"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           <div className="tooltip-header">
             <h3>{data.label}</h3>

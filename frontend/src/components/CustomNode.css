@@ -7,6 +7,7 @@
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .custom-node:hover {
@@ -79,6 +80,48 @@
 
 .node-neutral .node-impact {
   color: #6b7280;
+}
+
+.node-level-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.node-expand-indicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1.5px solid #667eea;
+  z-index: 1;
+  transition: all 0.2s;
+}
+
+.node-expand-indicator.expanded {
+  background: #667eea;
+  color: white;
 }
 
 /* React Flow handles */

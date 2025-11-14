@@ -5,6 +5,9 @@ import './CustomNode.css';
 
 interface CustomNodeProps {
   data: GraphNode & {
+    level?: number;
+    hasChildren?: boolean;
+    isExpanded?: boolean;
     onClick: () => void;
   };
 }
@@ -46,7 +49,23 @@ export const CustomNode = memo(({ data }: CustomNodeProps) => {
 
   return (
     <div className={`custom-node ${getNodeClass()}`} onClick={data.onClick}>
-      <Handle type="target" position={Position.Top} />
+      {/* Handles for hierarchical connections (top/bottom) */}
+      <Handle type="target" position={Position.Top} id="top" />
+      <Handle type="source" position={Position.Bottom} id="bottom" />
+      
+      {/* Handles for same-level connections (left/right) */}
+      <Handle type="target" position={Position.Left} id="left" />
+      <Handle type="source" position={Position.Right} id="right" />
+      
+      {data.level !== undefined && (
+        <div className="node-level-badge">{data.level}</div>
+      )}
+      
+      {data.hasChildren && (
+        <div className={`node-expand-indicator ${data.isExpanded ? 'expanded' : ''}`}>
+          {data.isExpanded ? '▼' : '▶'}
+        </div>
+      )}
       
       <div className="node-content">
         <div className="node-icon">{getCategoryIcon()}</div>
@@ -55,8 +74,6 @@ export const CustomNode = memo(({ data }: CustomNodeProps) => {
           <div className="node-impact">{getImpactText()}</div>
         )}
       </div>
-      
-      <Handle type="source" position={Position.Bottom} />
     </div>
   );
 });

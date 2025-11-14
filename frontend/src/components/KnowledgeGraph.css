@@ -7,6 +7,33 @@
   overflow: hidden;
 }
 
+.show-all-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.show-all-button:hover {
+  background: #5568d3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.show-all-button:active {
+  transform: translateY(0);
+}
+
 .graph-legend {
   position: absolute;
   bottom: 20px;

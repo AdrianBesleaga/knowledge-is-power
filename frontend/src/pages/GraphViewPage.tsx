@@ -125,7 +125,7 @@ export const GraphViewPage = () => {
         </div>
 
         <div className="info-text">
-          💡 Click on any node to see detailed information and sources
+          💡 By default, level 1 (parents) and level 2 (first children) are shown. Click on any node to see detailed information and expand its children. Use "Show All Nodes" to display the entire graph.
         </div>
 
         {relatedGraphs.length > 0 && (

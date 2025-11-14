@@ -95,8 +95,7 @@ const getChildren = (nodeId: string, edges: GraphEdge[]): string[] => {
 // Use dagre for hierarchical layout - proven algorithm that handles spacing and prevents overlaps
 export const getLayoutedElements = (
   nodes: Node[],
-  edges: Edge[],
-  nodeLevels: Map<string, number>
+  edges: Edge[]
 ) => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -117,16 +116,11 @@ export const getLayoutedElements = (
     });
   });
 
-  // Add edges to dagre graph (only hierarchical edges)
+  // Add all edges to dagre graph (edges are already filtered and reversed to parent->child)
+  // All edges passed here are hierarchical (parent->child) with source=parent, target=child
   edges.forEach(edge => {
-    const sourceLevel = nodeLevels.get(edge.source) || 1;
-    const targetLevel = nodeLevels.get(edge.target) || 1;
-    const isHierarchical = sourceLevel < targetLevel; // Parent level < child level
-    
-    if (isHierarchical) {
-      // For dagre, edges go from parent to child
-      dagreGraph.setEdge(edge.source, edge.target);
-    }
+    // For dagre, edges go from parent (source) to child (target)
+    dagreGraph.setEdge(edge.source, edge.target);
   });
 
   // Run dagre layout - this automatically prevents overlaps
@@ -258,28 +252,20 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges }: Knowled
     });
 
     // Convert graph edges to React Flow edges
-    // Determine edge type: parent->child (vertical) vs same-level (horizontal)
+    // All visible edges are hierarchical (parent->child) since same-level edges are filtered out
+    // Use straight type for all visible edges to ensure continuous lines
     const flowEdges: Edge[] = visibleEdges.map((edge, idx) => {
-      const sourceLevel = nodeLevels.get(edge.source) || 1;
-      const targetLevel = nodeLevels.get(edge.target) || 1;
-      
-      // If target level < source level, it's parent->child (hierarchical)
-      // Since edges are child->parent, target is parent (higher up)
-      const isHierarchical = targetLevel < sourceLevel;
-      
-      // For hierarchical edges: use straight (vertical) lines, connect top/bottom
-      // For same-level edges: use step (horizontal) lines, connect left/right
-      const edgeType = isHierarchical ? 'straight' : 'step';
       
       const baseStyle = {
         stroke: edge.strength > 0.7 ? '#667eea' : '#999',
         strokeWidth: Math.max(1, edge.strength * 3),
+        strokeDasharray: '0', // Ensure solid lines, no dashes or dots
       };
       
       // For hierarchical edges, reverse source/target so line goes from parent (top) to child (bottom)
-      // For same-level edges, keep original direction
-      const reactFlowSource = isHierarchical ? edge.target : edge.source;
-      const reactFlowTarget = isHierarchical ? edge.source : edge.target;
+      // Since all visible edges are hierarchical, always reverse
+      const reactFlowSource = edge.target; // parent (higher level)
+      const reactFlowTarget = edge.source; // child (lower level)
       
       return {
         id: `edge-${idx}`,
@@ -287,11 +273,10 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges }: Knowled
         target: reactFlowTarget,
         // For hierarchical: parent (source) is above, child (target) is below
         // Line starts at bottom of parent, ends at top of child
-        // For same-level: use right->left handles
-        sourceHandle: isHierarchical ? 'bottom' : 'right',
-        targetHandle: isHierarchical ? 'top' : 'left',
+        sourceHandle: 'bottom',
+        targetHandle: 'top',
         label: edge.relationship,
-        type: edgeType,
+        type: 'straight',
         animated: edge.strength > 0.7,
         style: baseStyle,
         markerEnd: {
@@ -306,20 +291,13 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges }: Knowled
           fill: '#fff',
           fillOpacity: 0.8,
         },
-        // For step edges (same-level), configure to be horizontal
-        ...(edgeType === 'step' && {
-          pathOptions: {
-            borderRadius: 0,
-          },
-        }),
       };
     });
 
-    // Apply layout (pass nodeLevels for filtering hierarchical edges)
+    // Apply layout
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       flowNodes, 
-      flowEdges, 
-      nodeLevels
+      flowEdges
     );
     
     setNodes(layoutedNodes);
@@ -357,6 +335,12 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges }: Knowled
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
+        defaultEdgeOptions={{
+          type: 'straight',
+          style: {
+            strokeDasharray: '0', // Ensure solid lines by default
+          },
+        }}
         onInit={(instance) => {
           reactFlowInstance.current = instance;
           // Initial fit will be handled in useEffect after layout
@@ -382,15 +366,25 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges }: Knowled
         <h4>Impact Legend</h4>
         <div className="legend-item">
           <div className="legend-color positive"></div>
-          <span>Positive Impact</span>
+          <span>Positive</span>
         </div>
         <div className="legend-item">
           <div className="legend-color negative"></div>
-          <span>Negative Impact</span>
+          <span>Negative</span>
         </div>
         <div className="legend-item">
           <div className="legend-color neutral"></div>
-          <span>Central Topic</span>
+          <span>Neutral</span>
+        </div>
+        <div className="legend-divider"></div>
+        <div className="legend-section-title">Impact</div>
+        <div className="legend-item">
+          <div className="legend-line strong"></div>
+          <span>High</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-line weak"></div>
+          <span>Low</span>
         </div>
       </div>
     </div>

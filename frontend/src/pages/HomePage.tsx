@@ -234,6 +234,9 @@ export const HomePage = () => {
                     onClick={() => navigate(`/graph/${graph.slug}`)}
                   >
                     <h3>{graph.topic}</h3>
+                    {graph.summary && (
+                      <p className="graph-card-summary">{graph.summary}</p>
+                    )}
                     <div className="graph-card-meta">
                       <span className="date">
                         {new Date(graph.createdAt).toLocaleDateString()}

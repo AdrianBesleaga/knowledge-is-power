@@ -14,13 +14,11 @@
     "react-router-dom": "^6.20.1",
     "reactflow": "^11.10.2",
     "firebase": "^10.7.1",
-    "axios": "^1.6.2",
-    "dagre": "^0.8.5"
+    "axios": "^1.6.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
-    "@types/dagre": "^0.7.52",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",

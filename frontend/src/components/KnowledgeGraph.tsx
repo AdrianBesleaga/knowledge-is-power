@@ -11,7 +11,6 @@ import ReactFlow, {
   ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import dagre from 'dagre';
 import { GraphNode, GraphEdge } from '../types/graph';
 import { CustomNode } from './CustomNode';
 import './KnowledgeGraph.css';
@@ -29,7 +28,7 @@ const nodeTypes: NodeTypes = {
 // Calculate node levels based on graph structure
 // Note: Edges are child -> parent (source is child, target is parent)
 // Uses shortest path to root to determine level
-const calculateNodeLevels = (nodes: GraphNode[], edges: GraphEdge[]): Map<string, number> => {
+export const calculateNodeLevels = (nodes: GraphNode[], edges: GraphEdge[]): Map<string, number> => {
   const levels = new Map<string, number>();
   const outgoingEdges = new Map<string, string[]>();
   
@@ -92,93 +91,20 @@ const getChildren = (nodeId: string, edges: GraphEdge[]): string[] => {
     .map(edge => edge.source);
 };
 
-// Layout graph using dagre
-// Note: Our edges are child->parent, but dagre expects parent->child
-// We reverse edges for layout so root appears at top
-// Only use hierarchical edges for layout to ensure proper alignment
-const getLayoutedElements = (
-  nodes: Node[], 
-  edges: Edge[], 
+// Custom hierarchical layout - much simpler and more predictable than dagre
+export const getLayoutedElements = (
+  nodes: Node[],
+  edges: Edge[],
   nodeLevels: Map<string, number>
 ) => {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-  
-  // Use TB (top to bottom) - root at top, children below
-  // Increased spacing for better visual appearance
-  dagreGraph.setGraph({ 
-    rankdir: 'TB', 
-    ranksep: 150,  // Vertical spacing between levels
-    nodesep: 100,  // Horizontal spacing between nodes at same level
-    edgesep: 50,   // Minimum edge length
-    marginx: 50,   // Horizontal margin
-    marginy: 50,   // Vertical margin
-  });
-
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: 220, height: 100 });
-  });
-
-  // Only use hierarchical edges for layout (exclude same-level connections)
-  // This ensures children align properly under their parent
-  edges.forEach((edge) => {
-    const sourceLevel = nodeLevels.get(edge.source) || 1;
-    const targetLevel = nodeLevels.get(edge.target) || 1;
-    const isHierarchical = targetLevel < sourceLevel;
-    
-    // Only add hierarchical edges to dagre layout
-    if (isHierarchical) {
-      // Reverse edges for dagre (dagre expects parent->child, we have child->parent)
-      // This makes parent appear above children
-      dagreGraph.setEdge(edge.target, edge.source);
-    }
-  });
-
-  dagre.layout(dagreGraph);
-
-  // Post-process to ensure parents are above children and center children under parent
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    const level = nodeLevels.get(node.id) || 1;
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - 110,
-        y: nodeWithPosition.y - 50,
-      },
-      level, // Store level for sorting
-    };
-  });
-
-  // Group nodes by level and ensure proper Y positioning
-  const nodesByLevel = new Map<number, Node[]>();
-  layoutedNodes.forEach(node => {
-    const level = node.level || 1;
-    if (!nodesByLevel.has(level)) {
-      nodesByLevel.set(level, []);
-    }
-    nodesByLevel.get(level)!.push(node);
-  });
-
-  // Ensure Y positions are correct: lower level = higher Y (top of screen)
-  const levelSpacing = 150;
-  const baseY = 50;
-  nodesByLevel.forEach((levelNodes, level) => {
-    const y = baseY + (level - 1) * levelSpacing;
-    levelNodes.forEach(node => {
-      node.position.y = y;
-    });
-  });
-
-  // Center children under their parent for better alignment
-  const nodeMap = new Map(layoutedNodes.map(n => [n.id, n]));
   const parentChildrenMap = new Map<string, string[]>();
-  
+
+  // Build parent-children relationships
   edges.forEach(edge => {
     const sourceLevel = nodeLevels.get(edge.source) || 1;
     const targetLevel = nodeLevels.get(edge.target) || 1;
     const isHierarchical = targetLevel < sourceLevel;
-    
+
     if (isHierarchical) {
       const parentId = edge.target;
       const childId = edge.source;
@@ -189,57 +115,67 @@ const getLayoutedElements = (
     }
   });
 
-  // Center children horizontally under their parent
-  parentChildrenMap.forEach((children, parentId) => {
-    const parentNode = nodeMap.get(parentId);
-    if (!parentNode || children.length === 0) return;
-
-    const childNodes = children
-      .map(id => nodeMap.get(id))
-      .filter((n): n is Node => n !== undefined);
-    
-    if (childNodes.length === 0) return;
-
-    // Verify parent is above children
-    const parentY = parentNode.position.y;
-    childNodes.forEach(child => {
-      if (child.position.y <= parentY) {
-        // Force child below parent
-        const childLevel = nodeLevels.get(child.id) || 1;
-        child.position.y = baseY + (childLevel - 1) * levelSpacing;
-      }
-    });
-
-    // Calculate total width of children
-    const childWidth = 220; // node width
-    const spacing = 100; // nodesep
-    const totalWidth = (childNodes.length - 1) * spacing + childNodes.length * childWidth;
-    
-    // Center point of parent
-    const parentCenterX = parentNode.position.x + 110;
-    
-    // Starting x position to center children
-    const startX = parentCenterX - totalWidth / 2 + childWidth / 2;
-    
-    // Sort children by current x position to maintain order
-    childNodes.sort((a, b) => a.position.x - b.position.x);
-    
-    // Reposition children to be centered under parent
-    childNodes.forEach((child, index) => {
-      child.position.x = startX + index * (childWidth + spacing) - 110;
-    });
+  // Group nodes by level
+  const nodesByLevel = new Map<number, Node[]>();
+  nodes.forEach(node => {
+    const level = nodeLevels.get(node.id) || 1;
+    if (!nodesByLevel.has(level)) {
+      nodesByLevel.set(level, []);
+    }
+    nodesByLevel.get(level)!.push(node);
   });
 
-  // Remove level property before returning (it was just for processing)
-  const finalNodes = layoutedNodes.map(({ level, ...node }) => node);
+  const levelSpacing = 250; // Increased spacing between parent and child levels
+  const baseY = 50;
 
-  return { nodes: finalNodes, edges };
+  // Position nodes level by level
+  nodesByLevel.forEach((levelNodes, level) => {
+    const y = baseY + (level - 1) * levelSpacing;
+
+    // Special handling for level 1 (central/root nodes)
+    if (level === 1) {
+      // For level 1, we want all central nodes centered
+      // If multiple central nodes, distribute them evenly
+      const nodeWidth = 220;
+      const spacing = 100;
+      const totalWidth = (levelNodes.length - 1) * spacing + levelNodes.length * nodeWidth;
+      const startX = -totalWidth / 2 + nodeWidth / 2;
+
+      levelNodes.forEach((node, index) => {
+        const centerX = startX + index * (nodeWidth + spacing);
+        node.position = {
+          x: centerX - 110, // Center the node
+          y: y
+        };
+      });
+    } else {
+      // For other levels, distribute ALL nodes at this level evenly
+      // This ensures no overlapping and consistent spacing regardless of parent
+      if (levelNodes.length > 0) {
+        const nodeWidth = 220;
+        const spacing = 150; // Increase spacing between nodes at same level
+        const totalWidth = (levelNodes.length - 1) * spacing + levelNodes.length * nodeWidth;
+
+        // Center the entire row of nodes
+        const startX = -totalWidth / 2 + nodeWidth / 2;
+
+        levelNodes.forEach((node, index) => {
+          const centerX = startX + index * (nodeWidth + spacing);
+          node.position = {
+            x: centerX - 110, // Center the node
+            y: y
+          };
+        });
+      }
+    }
+  });
+
+  return { nodes, edges };
 };
 
 export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges, onNodeClick }: KnowledgeGraphProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -306,7 +242,6 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges, onNodeCli
   }, [graphNodes, visibleNodeIds]);
 
   const handleNodeClick = useCallback((node: GraphNode) => {
-    setSelectedNode(node);
     onNodeClick?.(node);
 
     // Toggle expansion of node's children
@@ -410,11 +345,16 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges, onNodeCli
     
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
-    
-    // Fit view after layout is applied
+
+    // Fit view to show all nodes on initial load
     setTimeout(() => {
-      if (reactFlowInstance.current) {
-        reactFlowInstance.current.fitView({ padding: 0.2, maxZoom: 1, duration: 300 });
+      if (reactFlowInstance.current && layoutedNodes.length > 0) {
+        // Fit all nodes in view with padding
+        reactFlowInstance.current.fitView({
+          padding: 0.1, // Less padding to show more content
+          maxZoom: 1.2,  // Allow slight zoom in
+          duration: 300
+        });
       }
     }, 100);
   }, [visibleNodes, visibleEdges, handleNodeClick, nodeLevels]);
@@ -440,13 +380,10 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges, onNodeCli
         nodeTypes={nodeTypes}
         onInit={(instance) => {
           reactFlowInstance.current = instance;
-          instance.fitView({ padding: 0.2, maxZoom: 1 });
+          // Initial fit will be handled in useEffect after layout
         }}
-        fitView
-        fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
         minZoom={0.1}
         maxZoom={2}
-        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
       >
         <Background color="#f0f0f0" gap={16} />
         <Controls />

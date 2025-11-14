@@ -84,6 +84,66 @@
   background: white;
 }
 
+.info-text {
+  text-align: center;
+  color: #666;
+  margin-top: 2rem;
+  font-size: 0.9rem;
+}
+
+.related-graphs-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e0e0e0;
+}
+
+.related-graphs-section h3 {
+  color: #333;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.related-description {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.related-graphs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.related-graph-card {
+  background: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.related-graph-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.related-graph-card h4 {
+  color: #333;
+  font-size: 1.1rem;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.4;
+}
+
+.related-graph-meta {
+  display: flex;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.85rem;
+}
+
 @media (max-width: 768px) {
   .graph-info {
     flex-direction: column;
@@ -95,6 +155,10 @@
 
   .graph-display {
     height: 500px;
+  }
+
+  .related-graphs-grid {
+    grid-template-columns: 1fr;
   }
 }
 

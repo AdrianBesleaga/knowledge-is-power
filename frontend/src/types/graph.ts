@@ -18,6 +18,7 @@ export interface KnowledgeGraph {
   id: string;
   slug: string;
   topic: string;
+  label: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
   createdAt: string;

@@ -70,6 +70,12 @@ export const HomePage = () => {
         <div className="header-content">
           <h1 className="logo">Knowledge is Power</h1>
           <div className="header-actions">
+            <button
+              className="btn-secondary"
+              onClick={() => navigate('/search')}
+            >
+              Search
+            </button>
             {user ? (
               <button
                 className="btn-secondary"

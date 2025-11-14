@@ -5,9 +5,17 @@ interface SearchBarProps {
   onSearch: (topic: string) => void;
   loading?: boolean;
   initialValue?: string;
+  buttonText?: string;
+  loadingText?: string;
 }
 
-export const SearchBar = ({ onSearch, loading = false, initialValue = '' }: SearchBarProps) => {
+export const SearchBar = ({ 
+  onSearch, 
+  loading = false, 
+  initialValue = '',
+  buttonText = 'Generate Graph',
+  loadingText = 'Generating...'
+}: SearchBarProps) => {
   const [topic, setTopic] = useState(initialValue);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,7 +37,7 @@ export const SearchBar = ({ onSearch, loading = false, initialValue = '' }: Sear
         className="search-input"
       />
       <button type="submit" disabled={loading || !topic.trim()} className="search-button">
-        {loading ? 'Generating...' : 'Generate Graph'}
+        {loading ? loadingText : buttonText}
       </button>
     </form>
   );

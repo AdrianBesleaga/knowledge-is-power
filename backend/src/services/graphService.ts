@@ -327,7 +327,8 @@ export class GraphService {
   }
 
   /**
-   * Search graphs by topic, label, or content using Neo4j full-text search
+   * Search graphs by topic, label, or content using enhanced full-text search
+   * Supports multi-word queries, partial matching, and improved relevance scoring
    */
   async searchGraphs(
     query: string,
@@ -339,14 +340,22 @@ export class GraphService {
     const session = driver.session();
 
     try {
-      const searchTerm = query.toLowerCase().trim();
-      const searchPattern = `.*${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*`;
+      // Tokenize query into words (split by spaces, filter empty strings)
+      const searchTokens = query
+        .toLowerCase()
+        .trim()
+        .split(/\s+/)
+        .filter(token => token.length > 0)
+        .map(token => token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')); // Escape special regex chars
+
+      if (searchTokens.length === 0) {
+        return { graphs: [], total: 0 };
+      }
 
       // Build query with optional user filter
       const userFilter = userId ? 'AND g.userId = $userId' : '';
       const params: any = {
-        searchTerm,
-        searchPattern,
+        searchTokens,
         limit: neo4j.int(Math.floor(limit)),
         offset: neo4j.int(Math.floor(offset)),
       };
@@ -354,26 +363,75 @@ export class GraphService {
         params.userId = userId;
       }
 
-      // Search in topic, label, and node summaries
-      const searchQuery = `
-        MATCH (g:Graph)
-        WHERE (
-          toLower(g.topic) CONTAINS $searchTerm 
-          OR toLower(g.label) CONTAINS $searchTerm
+      // Build dynamic WHERE clause for multi-word matching
+      // Match if ANY token appears in any searchable field (OR logic)
+      // This allows partial matches and multi-word queries
+      const tokenConditions = searchTokens.map((token, idx) => {
+        const tokenParam = `token${idx}`;
+        params[tokenParam] = token;
+        return `(
+          toLower(g.topic) CONTAINS $${tokenParam}
+          OR toLower(g.label) CONTAINS $${tokenParam}
           OR EXISTS {
             MATCH (g)-[:HAS_NODE]->(n:Node)
-            WHERE toLower(n.label) CONTAINS $searchTerm 
-               OR toLower(n.summary) CONTAINS $searchTerm
+            WHERE toLower(n.label) CONTAINS $${tokenParam}
+               OR toLower(n.summary) CONTAINS $${tokenParam}
+               OR toLower(n.category) CONTAINS $${tokenParam}
+               OR ANY(source IN n.sources WHERE toLower(source) CONTAINS $${tokenParam})
           }
-        )
+          OR EXISTS {
+            MATCH (g)-[:HAS_NODE]->(source:Node)-[r:RELATES_TO]->(target:Node)
+            WHERE toLower(r.relationship) CONTAINS $${tokenParam}
+          }
+        )`;
+      }).join(' OR ');
+
+      // Enhanced relevance scoring:
+      // - Exact topic match: 10 points
+      // - Topic contains query: 8 points
+      // - Label match: 6 points
+      // - Node label match: 4 points
+      // - Node summary match: 3 points
+      // - Category match: 2 points
+      // - Source match: 1 point
+      // - Relationship match: 1 point
+      // Plus bonus for matching multiple tokens
+      const relevanceScoring = searchTokens.map((token, idx) => {
+        const tokenParam = `token${idx}`;
+        return `
+          (CASE WHEN toLower(g.topic) = $${tokenParam} THEN 10
+                WHEN toLower(g.topic) CONTAINS $${tokenParam} THEN 8
+                WHEN toLower(g.label) CONTAINS $${tokenParam} THEN 6
+                ELSE 0 END) +
+          (CASE WHEN EXISTS {
+            MATCH (g)-[:HAS_NODE]->(n:Node)
+            WHERE toLower(n.label) CONTAINS $${tokenParam}
+          } THEN 4 ELSE 0 END) +
+          (CASE WHEN EXISTS {
+            MATCH (g)-[:HAS_NODE]->(n:Node)
+            WHERE toLower(n.summary) CONTAINS $${tokenParam}
+          } THEN 3 ELSE 0 END) +
+          (CASE WHEN EXISTS {
+            MATCH (g)-[:HAS_NODE]->(n:Node)
+            WHERE toLower(n.category) CONTAINS $${tokenParam}
+          } THEN 2 ELSE 0 END) +
+          (CASE WHEN EXISTS {
+            MATCH (g)-[:HAS_NODE]->(n:Node)
+            WHERE ANY(source IN n.sources WHERE toLower(source) CONTAINS $${tokenParam})
+          } THEN 1 ELSE 0 END) +
+          (CASE WHEN EXISTS {
+            MATCH (g)-[:HAS_NODE]->(source:Node)-[r:RELATES_TO]->(target:Node)
+            WHERE toLower(r.relationship) CONTAINS $${tokenParam}
+          } THEN 1 ELSE 0 END)`;
+      }).join(' + ');
+
+      // Search in topic, label, node labels, summaries, categories, sources, and relationships
+      const searchQuery = `
+        MATCH (g:Graph)
+        WHERE (${tokenConditions})
         ${userFilter}
-        WITH g, 
-          CASE 
-            WHEN toLower(g.topic) CONTAINS $searchTerm THEN 3
-            WHEN toLower(g.label) CONTAINS $searchTerm THEN 2
-            ELSE 1
-          END as relevance
-        ORDER BY relevance DESC, g.createdAt DESC
+        WITH g, (${relevanceScoring}) as relevance
+        ORDER BY relevance DESC, g.viewCount DESC, g.createdAt DESC
         SKIP $offset
         LIMIT $limit
         RETURN g, relevance
@@ -384,15 +442,7 @@ export class GraphService {
       // Get total count
       const countQuery = `
         MATCH (g:Graph)
-        WHERE (
-          toLower(g.topic) CONTAINS $searchTerm 
-          OR toLower(g.label) CONTAINS $searchTerm
-          OR EXISTS {
-            MATCH (g)-[:HAS_NODE]->(n:Node)
-            WHERE toLower(n.label) CONTAINS $searchTerm 
-               OR toLower(n.summary) CONTAINS $searchTerm
-          }
-        )
+        WHERE (${tokenConditions})
         ${userFilter}
         RETURN count(g) as total
       `;
@@ -446,7 +496,8 @@ export class GraphService {
   }
 
   /**
-   * Search nodes across all graphs using Neo4j pattern matching
+   * Search nodes across all graphs using enhanced full-text search
+   * Supports multi-word queries, partial matching, and improved relevance scoring
    */
   async searchNodes(
     query: string,
@@ -457,31 +508,64 @@ export class GraphService {
     const session = driver.session();
 
     try {
-      const searchTerm = query.toLowerCase().trim();
+      // Tokenize query into words (split by spaces, filter empty strings)
+      const searchTokens = query
+        .toLowerCase()
+        .trim()
+        .split(/\s+/)
+        .filter(token => token.length > 0)
+        .map(token => token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')); // Escape special regex chars
+
+      if (searchTokens.length === 0) {
+        return { nodes: [], graphs: [] };
+      }
+
       const categoryFilter = category ? 'AND n.category = $category' : '';
       const params: any = {
-        searchTerm,
+        searchTokens,
         limit: neo4j.int(Math.floor(limit)),
       };
       if (category) {
         params.category = category;
       }
 
+      // Build dynamic WHERE clause for multi-word matching
+      const tokenConditions = searchTokens.map((token, idx) => {
+        const tokenParam = `token${idx}`;
+        params[tokenParam] = token;
+        return `(
+          toLower(n.label) CONTAINS $${tokenParam}
+          OR toLower(n.summary) CONTAINS $${tokenParam}
+          OR toLower(n.category) CONTAINS $${tokenParam}
+          OR ANY(source IN n.sources WHERE toLower(source) CONTAINS $${tokenParam})
+        )`;
+      }).join(' OR ');
+
+      // Enhanced relevance scoring for nodes:
+      // - Exact label match: 10 points
+      // - Label contains query: 8 points
+      // - Summary match: 5 points
+      // - Category match: 3 points
+      // - Source match: 1 point
+      const relevanceScoring = searchTokens.map((token, idx) => {
+        const tokenParam = `token${idx}`;
+        return `
+          (CASE WHEN toLower(n.label) = $${tokenParam} THEN 10
+                WHEN toLower(n.label) CONTAINS $${tokenParam} THEN 8
+                ELSE 0 END) +
+          (CASE WHEN toLower(n.summary) CONTAINS $${tokenParam} THEN 5 ELSE 0 END) +
+          (CASE WHEN toLower(n.category) CONTAINS $${tokenParam} THEN 3 ELSE 0 END) +
+          (CASE WHEN ANY(source IN n.sources WHERE toLower(source) CONTAINS $${tokenParam}) THEN 1 ELSE 0 END)`;
+      }).join(' + ');
+
       const searchQuery = `
         MATCH (g:Graph)-[:HAS_NODE]->(n:Node)
-        WHERE (
-          toLower(n.label) CONTAINS $searchTerm 
-          OR toLower(n.summary) CONTAINS $searchTerm
-        )
+        WHERE (${tokenConditions})
         ${categoryFilter}
-        RETURN DISTINCT n, g.id as graphId, g.slug as graphSlug
-        ORDER BY 
-          CASE 
-            WHEN toLower(n.label) CONTAINS $searchTerm THEN 1
-            ELSE 2
-          END,
-          n.impactScore DESC
+        WITH DISTINCT n, g.id as graphId, g.slug as graphSlug, (${relevanceScoring}) as relevance
+        ORDER BY relevance DESC, n.impactScore DESC
         LIMIT $limit
+        RETURN n, graphId, graphSlug, relevance
       `;
 
       const result = await session.run(searchQuery, params);

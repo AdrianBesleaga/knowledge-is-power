@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getGraphBySlug, setAuthToken } from '../services/api';
+import { getGraphBySlug, getRelatedGraphs, setAuthToken } from '../services/api';
 import { KnowledgeGraph as KnowledgeGraphType, GraphNode } from '../types/graph';
 import { KnowledgeGraph } from '../components/KnowledgeGraph';
 import { NodeDetailPanel } from '../components/NodeDetailPanel';
@@ -13,7 +13,9 @@ export const GraphViewPage = () => {
   const navigate = useNavigate();
   const { user, getIdToken } = useAuth();
   const [graph, setGraph] = useState<KnowledgeGraphType | null>(null);
+  const [relatedGraphs, setRelatedGraphs] = useState<KnowledgeGraphType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingRelated, setLoadingRelated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
@@ -39,6 +41,17 @@ export const GraphViewPage = () => {
         
         // Update page title for SEO
         document.title = `${loadedGraph.topic} - Knowledge is Power`;
+
+        // Load related graphs
+        setLoadingRelated(true);
+        try {
+          const related = await getRelatedGraphs(slug, 6);
+          setRelatedGraphs(related.graphs);
+        } catch (err) {
+          console.error('Error loading related graphs:', err);
+        } finally {
+          setLoadingRelated(false);
+        }
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load knowledge graph');
         console.error('Error loading graph:', err);
@@ -77,26 +90,6 @@ export const GraphViewPage = () => {
 
   return (
     <div className="graph-view-page">
-      <header className="graph-header">
-        <div className="header-content">
-          <button className="back-button" onClick={() => navigate('/')}>
-            ← Back
-          </button>
-          <h1 className="logo">Knowledge is Power</h1>
-          <div className="header-actions">
-            {user ? (
-              <button className="btn-secondary" onClick={() => navigate('/profile')}>
-                My Graphs
-              </button>
-            ) : (
-              <button className="btn-secondary" onClick={() => navigate('/')}>
-                Create Your Own
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
       <main className="graph-main">
         <div className="graph-info">
           <div>
@@ -107,8 +100,22 @@ export const GraphViewPage = () => {
               <span>{graph.viewCount} views</span>
             </div>
           </div>
-          <ShareButton url={`/graph/${graph.slug}`} />
+          <ShareButton 
+            url={`/graph/${graph.slug}`} 
+            slug={graph.slug}
+            graph={graph}
+            onVisibilityChange={(isPublic) => {
+              setGraph({ ...graph, isPublic });
+            }}
+          />
         </div>
+
+        {graph.summary && (
+          <div className="graph-summary-section">
+            <h3>Summary</h3>
+            <p className="graph-summary">{graph.summary}</p>
+          </div>
+        )}
 
         <div className="graph-display">
           <KnowledgeGraph
@@ -119,8 +126,33 @@ export const GraphViewPage = () => {
         </div>
 
         <div className="info-text">
-          💡 Click on any node to see detailed information and sources
+          💡 By default, level 1 (parents) and level 2 (first children) are shown. Click on any node to see detailed information and expand its children. Use "Show All Nodes" to display the entire graph.
         </div>
+
+        {relatedGraphs.length > 0 && (
+          <div className="related-graphs-section">
+            <h3>Related Graphs</h3>
+            <p className="related-description">
+              Graphs that share common nodes with this one (powered by Neo4j graph traversal)
+            </p>
+            <div className="related-graphs-grid">
+              {relatedGraphs.map((relatedGraph) => (
+                <div
+                  key={relatedGraph.id}
+                  className="related-graph-card"
+                  onClick={() => navigate(`/graph/${relatedGraph.slug}`)}
+                >
+                  <h4>{relatedGraph.topic}</h4>
+                  <div className="related-graph-meta">
+                    <span>{new Date(relatedGraph.createdAt).toLocaleDateString()}</span>
+                    <span>•</span>
+                    <span>{relatedGraph.viewCount} views</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       <NodeDetailPanel node={selectedNode} onClose={() => setSelectedNode(null)} />

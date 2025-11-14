@@ -1,4 +1,4 @@
-import { KnowledgeGraph, GraphNode, GraphEdge } from '../types/graph';
+import { KnowledgeGraph } from '../types/graph';
 
 export interface GraphInsights {
   totalFindings: number;

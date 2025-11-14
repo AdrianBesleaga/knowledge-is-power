@@ -15,7 +15,6 @@ export const GraphViewPage = () => {
   const [graph, setGraph] = useState<KnowledgeGraphType | null>(null);
   const [relatedGraphs, setRelatedGraphs] = useState<KnowledgeGraphType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingRelated, setLoadingRelated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
@@ -43,14 +42,11 @@ export const GraphViewPage = () => {
         document.title = `${loadedGraph.topic} - Knowledge is Power`;
 
         // Load related graphs
-        setLoadingRelated(true);
         try {
           const related = await getRelatedGraphs(slug, 6);
           setRelatedGraphs(related.graphs);
         } catch (err) {
           console.error('Error loading related graphs:', err);
-        } finally {
-          setLoadingRelated(false);
         }
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load knowledge graph');

@@ -50,7 +50,7 @@ export const SearchPage = () => {
       if (initialCategory) {
         setCategory(initialCategory);
       }
-      handleSearch(initialQuery, initialType, initialCategory);
+      handleSearch(initialQuery, initialType, initialCategory || undefined);
     } else if (initialType === 'popular') {
       setSearchType('popular');
       loadPopularGraphs();

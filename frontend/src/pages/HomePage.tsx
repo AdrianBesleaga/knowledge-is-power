@@ -6,7 +6,6 @@ import { KnowledgeGraph } from '../components/KnowledgeGraph';
 import { NodeDetailPanel } from '../components/NodeDetailPanel';
 import { SaveGraphButton } from '../components/SaveGraphButton';
 import { ShareButton } from '../components/ShareButton';
-import { UserProfile } from '../components/UserProfile';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../hooks/useAuth';
 import { GraphNode, GraphEdge, KnowledgeGraph as KnowledgeGraphType } from '../types/graph';
@@ -143,21 +142,6 @@ export const HomePage = () => {
 
   return (
     <div className="home-page">
-      <header className="home-header">
-        <div className="header-content">
-          <h1 className="logo">Knowledge is Power</h1>
-          <div className="header-actions">
-            <button
-              className="btn-secondary"
-              onClick={() => navigate('/search')}
-            >
-              Search
-            </button>
-            <UserProfile />
-          </div>
-        </div>
-      </header>
-
       <main className="home-main">
         <div className="hero-section">
           <h2 className="hero-title">
@@ -183,44 +167,48 @@ export const HomePage = () => {
           )}
         </div>
 
-        {loading && (
-          <div className="loading-state">
-            <div className="spinner"></div>
-            <p>Analyzing topic and generating knowledge graph...</p>
-            <p className="loading-hint">This may take 10-30 seconds</p>
-          </div>
-        )}
-
-        {!loading && nodes.length > 0 && (
+        {topic && (
           <div className="graph-section">
             <div className="graph-actions">
               <h3>Knowledge Graph: {topic}</h3>
-              <div className="action-buttons">
-                {savedUrl && <ShareButton url={savedUrl} />}
-                <SaveGraphButton
-                  topic={topic}
-                  nodes={nodes}
-                  edges={edges}
-                  onSave={handleSaveGraph}
-                />
-              </div>
+              {!loading && nodes.length > 0 && (
+                <div className="action-buttons">
+                  {savedUrl && <ShareButton url={savedUrl} />}
+                  <SaveGraphButton
+                    topic={topic}
+                    nodes={nodes}
+                    edges={edges}
+                    onSave={handleSaveGraph}
+                  />
+                </div>
+              )}
             </div>
             
             <div className="graph-container">
-              <KnowledgeGraph
-                nodes={nodes}
-                edges={edges}
-                onNodeClick={setSelectedNode}
-              />
+              {loading ? (
+                <div className="graph-loading">
+                  <div className="spinner"></div>
+                  <p>Analyzing topic and generating knowledge graph...</p>
+                  <p className="loading-hint">This may take 10-30 seconds</p>
+                </div>
+              ) : nodes.length > 0 ? (
+                <KnowledgeGraph
+                  nodes={nodes}
+                  edges={edges}
+                  onNodeClick={setSelectedNode}
+                />
+              ) : null}
             </div>
 
-            <div className="info-text">
-              💡 Click on any node to see detailed information and sources
-            </div>
+            {!loading && nodes.length > 0 && (
+              <div className="info-text">
+                💡 Click on any node to see detailed information and sources
+              </div>
+            )}
           </div>
         )}
 
-        {!loading && nodes.length === 0 && (
+        {!topic && (
           <div className="popular-graphs-section">
             <div className="section-header">
               <h2>Top 30 Popular Graphs</h2>

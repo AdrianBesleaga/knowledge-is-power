@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserGraphs, setAuthToken } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import { UserProfile } from '../components/UserProfile';
 import { KnowledgeGraph } from '../types/graph';
 import './ProfilePage.css';
 
@@ -53,18 +52,6 @@ export const ProfilePage = () => {
 
   return (
     <div className="profile-page">
-      <header className="profile-header">
-        <div className="header-content">
-          <button className="back-button" onClick={() => navigate('/')}>
-            ← Back
-          </button>
-          <h1 className="logo">Knowledge is Power</h1>
-          <div className="header-actions">
-            <UserProfile />
-          </div>
-        </div>
-      </header>
-
       <main className="profile-main">
         <div className="profile-info">
           <h2>My Knowledge Graphs</h2>

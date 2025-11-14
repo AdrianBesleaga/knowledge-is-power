@@ -4,7 +4,6 @@ import { searchGraphs, searchNodes, getPopularGraphs, getGraphsByCategory, setAu
 import { useAuth } from '../hooks/useAuth';
 import { KnowledgeGraph, GraphNode } from '../types/graph';
 import { SearchBar } from '../components/SearchBar';
-import { UserProfile } from '../components/UserProfile';
 import './SearchPage.css';
 
 type SearchType = 'graphs' | 'nodes' | 'popular' | 'category';
@@ -168,18 +167,6 @@ export const SearchPage = () => {
 
   return (
     <div className="search-page">
-      <header className="search-header">
-        <div className="header-content">
-          <button className="back-button" onClick={() => navigate('/')}>
-            ← Back
-          </button>
-          <h1 className="logo">Knowledge is Power</h1>
-          <div className="header-actions">
-            <UserProfile />
-          </div>
-        </div>
-      </header>
-
       <main className="search-main">
         <div className="search-controls">
           <div className="search-tabs">

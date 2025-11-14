@@ -1,31 +1,6 @@
 .graph-view-page {
-  min-height: 100vh;
+  flex: 1;
   background: linear-gradient(to bottom, #f9fafb, #ffffff);
-}
-
-.graph-header {
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 1rem 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.back-button {
-  background: none;
-  border: none;
-  color: #667eea;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  transition: background 0.2s;
-}
-
-.back-button:hover {
-  background: #f3f4f6;
 }
 
 .loading-container,

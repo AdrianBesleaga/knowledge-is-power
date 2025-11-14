@@ -5,7 +5,6 @@ import { KnowledgeGraph as KnowledgeGraphType, GraphNode } from '../types/graph'
 import { KnowledgeGraph } from '../components/KnowledgeGraph';
 import { NodeDetailPanel } from '../components/NodeDetailPanel';
 import { ShareButton } from '../components/ShareButton';
-import { UserProfile } from '../components/UserProfile';
 import { useAuth } from '../hooks/useAuth';
 import './GraphViewPage.css';
 
@@ -91,18 +90,6 @@ export const GraphViewPage = () => {
 
   return (
     <div className="graph-view-page">
-      <header className="graph-header">
-        <div className="header-content">
-          <button className="back-button" onClick={() => navigate('/')}>
-            ← Back
-          </button>
-          <h1 className="logo">Knowledge is Power</h1>
-          <div className="header-actions">
-            <UserProfile />
-          </div>
-        </div>
-      </header>
-
       <main className="graph-main">
         <div className="graph-info">
           <div>

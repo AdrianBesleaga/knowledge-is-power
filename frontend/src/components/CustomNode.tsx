@@ -72,7 +72,11 @@ export const CustomNode = memo(({ data }: CustomNodeProps) => {
     >
       {/* Hover tooltip */}
       {isHovered && (
-        <div className="node-hover-tooltip">
+        <div 
+          className="node-hover-tooltip"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
           <div className="tooltip-header">
             <h3>{data.label}</h3>
             <span className="tooltip-category-badge">{data.category}</span>

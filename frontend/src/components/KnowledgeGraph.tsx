@@ -100,14 +100,16 @@ export const getLayoutedElements = (
   const parentChildrenMap = new Map<string, string[]>();
 
   // Build parent-children relationships
+  // Note: React Flow edges are reversed for hierarchical relationships
+  // For hierarchical: source = parent (lower level), target = child (higher level)
   edges.forEach(edge => {
     const sourceLevel = nodeLevels.get(edge.source) || 1;
     const targetLevel = nodeLevels.get(edge.target) || 1;
-    const isHierarchical = targetLevel < sourceLevel;
+    const isHierarchical = sourceLevel < targetLevel; // Parent level < child level
 
     if (isHierarchical) {
-      const parentId = edge.target;
-      const childId = edge.source;
+      const parentId = edge.source; // In reversed edges, source is parent
+      const childId = edge.target;  // In reversed edges, target is child
       if (!parentChildrenMap.has(parentId)) {
         parentChildrenMap.set(parentId, []);
       }
@@ -127,48 +129,95 @@ export const getLayoutedElements = (
 
   const levelSpacing = 250; // Increased spacing between parent and child levels
   const baseY = 50;
+  const nodeWidth = 220;
+  const childSpacing = 150; // Spacing between children of the same parent
 
-  // Position nodes level by level
-  nodesByLevel.forEach((levelNodes, level) => {
+  // First, position level 1 nodes (root/central nodes)
+  const level1Nodes = nodesByLevel.get(1) || [];
+  if (level1Nodes.length > 0) {
+    const y = baseY;
+    const spacing = 100;
+    const totalWidth = (level1Nodes.length - 1) * spacing + level1Nodes.length * nodeWidth;
+    const startX = -totalWidth / 2 + nodeWidth / 2;
+
+    level1Nodes.forEach((node, index) => {
+      const centerX = startX + index * (nodeWidth + spacing);
+      node.position = {
+        x: centerX - 110, // Center the node
+        y: y
+      };
+    });
+  }
+
+  // Position children centered below their parents
+  // Process levels from top to bottom
+  for (let level = 2; level <= Math.max(...Array.from(nodesByLevel.keys())); level++) {
+    const levelNodes = nodesByLevel.get(level) || [];
+    if (levelNodes.length === 0) continue;
+
     const y = baseY + (level - 1) * levelSpacing;
 
-    // Special handling for level 1 (central/root nodes)
-    if (level === 1) {
-      // For level 1, we want all central nodes centered
-      // If multiple central nodes, distribute them evenly
-      const nodeWidth = 220;
-      const spacing = 100;
-      const totalWidth = (levelNodes.length - 1) * spacing + levelNodes.length * nodeWidth;
-      const startX = -totalWidth / 2 + nodeWidth / 2;
+    // Group children by their parent using the parentChildrenMap we built
+    const childrenByParent = new Map<string, Node[]>();
+    levelNodes.forEach(node => {
+      // Find which parent this node belongs to by checking parentChildrenMap
+      let foundParent = false;
+      for (const [parentId, childIds] of parentChildrenMap.entries()) {
+        if (childIds.includes(node.id)) {
+          if (!childrenByParent.has(parentId)) {
+            childrenByParent.set(parentId, []);
+          }
+          childrenByParent.get(parentId)!.push(node);
+          foundParent = true;
+          break;
+        }
+      }
+      
+      if (!foundParent) {
+        // If no parent found, treat as orphan (shouldn't happen, but handle gracefully)
+        if (!childrenByParent.has('orphan')) {
+          childrenByParent.set('orphan', []);
+        }
+        childrenByParent.get('orphan')!.push(node);
+      }
+    });
 
-      levelNodes.forEach((node, index) => {
-        const centerX = startX + index * (nodeWidth + spacing);
-        node.position = {
-          x: centerX - 110, // Center the node
-          y: y
-        };
-      });
-    } else {
-      // For other levels, distribute ALL nodes at this level evenly
-      // This ensures no overlapping and consistent spacing regardless of parent
-      if (levelNodes.length > 0) {
-        const nodeWidth = 220;
-        const spacing = 150; // Increase spacing between nodes at same level
-        const totalWidth = (levelNodes.length - 1) * spacing + levelNodes.length * nodeWidth;
-
-        // Center the entire row of nodes
+    // Position children centered below their parent
+    childrenByParent.forEach((children, parentId) => {
+      if (parentId === 'orphan') {
+        // Handle orphan nodes by centering them
+        const totalWidth = (children.length - 1) * childSpacing + children.length * nodeWidth;
         const startX = -totalWidth / 2 + nodeWidth / 2;
-
-        levelNodes.forEach((node, index) => {
-          const centerX = startX + index * (nodeWidth + spacing);
-          node.position = {
-            x: centerX - 110, // Center the node
+        children.forEach((child, index) => {
+          const centerX = startX + index * (nodeWidth + childSpacing);
+          child.position = {
+            x: centerX - 110,
             y: y
           };
         });
+      } else {
+        // Find parent node to get its position
+        const parentNode = nodes.find(n => n.id === parentId);
+        if (parentNode && parentNode.position) {
+          const parentCenterX = parentNode.position.x + nodeWidth / 2;
+          
+          // Calculate total width needed for children
+          const totalWidth = (children.length - 1) * childSpacing + children.length * nodeWidth;
+          // Start position so that children are centered below parent
+          const startX = parentCenterX - totalWidth / 2;
+
+          // Position children centered below parent
+          children.forEach((child, index) => {
+            const childCenterX = startX + index * (nodeWidth + childSpacing) + nodeWidth / 2;
+            child.position = {
+              x: childCenterX - nodeWidth / 2, // Position so center is at childCenterX
+              y: y
+            };
+          });
+        }
       }
-    }
-  });
+    });
+  }
 
   return { nodes, edges };
 };

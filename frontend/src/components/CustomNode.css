@@ -1,6 +1,7 @@
 .custom-node-wrapper {
   position: relative;
   display: inline-block;
+  z-index: 1000;
 }
 
 .custom-node {
@@ -149,7 +150,7 @@
   min-width: 800px;
   max-width: 1000px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 10000;
   pointer-events: auto;
   animation: tooltipFadeIn 0.2s ease;
   border: 1px solid #e5e7eb;

@@ -4,7 +4,7 @@
   position: relative;
   background: #fafafa;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .show-all-button {
@@ -93,5 +93,24 @@
 
 .react-flow__attribution {
   display: none;
+}
+
+/* Ensure nodes and tooltips appear above ReactFlow viewport */
+.react-flow__node {
+  z-index: 1000 !important;
+  overflow: visible !important;
+}
+
+.react-flow__viewport {
+  z-index: 1;
+  overflow: visible !important;
+}
+
+.react-flow {
+  overflow: visible !important;
+}
+
+.react-flow__renderer {
+  overflow: visible !important;
 }
 

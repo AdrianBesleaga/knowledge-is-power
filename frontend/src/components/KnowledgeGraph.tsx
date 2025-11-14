@@ -10,6 +10,7 @@ import ReactFlow, {
   NodeTypes,
   ReactFlowInstance,
 } from 'reactflow';
+import dagre from 'dagre';
 import 'reactflow/dist/style.css';
 import { GraphNode, GraphEdge } from '../types/graph';
 import { CustomNode } from './CustomNode';
@@ -91,25 +92,71 @@ const getChildren = (nodeId: string, edges: GraphEdge[]): string[] => {
     .map(edge => edge.source);
 };
 
-// Custom hierarchical layout - much simpler and more predictable than dagre
+// Use dagre for hierarchical layout - proven algorithm that handles spacing and centering
 export const getLayoutedElements = (
   nodes: Node[],
   edges: Edge[],
   nodeLevels: Map<string, number>
 ) => {
-  const parentChildrenMap = new Map<string, string[]>();
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  dagreGraph.setGraph({ 
+    rankdir: 'TB', // Top to bottom
+    nodesep: 150, // Horizontal spacing between nodes
+    ranksep: 250, // Vertical spacing between levels
+    align: 'UL', // Align nodes to upper left
+    acyclicer: 'greedy',
+    ranker: 'tight-tree' // Use tight-tree ranking for better centering
+  });
 
-  // Build parent-children relationships
-  // Note: React Flow edges are reversed for hierarchical relationships
-  // For hierarchical: source = parent (lower level), target = child (higher level)
+  // Add nodes to dagre graph
+  nodes.forEach(node => {
+    dagreGraph.setNode(node.id, { 
+      width: 220, 
+      height: 100 
+    });
+  });
+
+  // Add edges to dagre graph (only hierarchical edges)
   edges.forEach(edge => {
     const sourceLevel = nodeLevels.get(edge.source) || 1;
     const targetLevel = nodeLevels.get(edge.target) || 1;
     const isHierarchical = sourceLevel < targetLevel; // Parent level < child level
-
+    
     if (isHierarchical) {
-      const parentId = edge.source; // In reversed edges, source is parent
-      const childId = edge.target;  // In reversed edges, target is child
+      // For dagre, edges go from parent to child
+      dagreGraph.setEdge(edge.source, edge.target);
+    }
+  });
+
+  // Run dagre layout
+  dagre.layout(dagreGraph);
+
+  // Apply dagre positions to nodes
+  nodes.forEach(node => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    node.position = {
+      x: nodeWithPosition.x - 110, // Center the node (node width / 2)
+      y: nodeWithPosition.y - 50   // Center the node (node height / 2)
+    };
+  });
+
+  // Post-process: Center children under their immediate parent
+  // Process levels from top to bottom
+  const maxLevel = Math.max(...Array.from(nodeLevels.values()));
+  const nodeWidth = 220;
+  const childSpacing = 150;
+
+  // Build parent-children map
+  const parentChildrenMap = new Map<string, string[]>();
+  edges.forEach(edge => {
+    const sourceLevel = nodeLevels.get(edge.source) || 1;
+    const targetLevel = nodeLevels.get(edge.target) || 1;
+    const isHierarchical = sourceLevel < targetLevel;
+    
+    if (isHierarchical) {
+      const parentId = edge.source;
+      const childId = edge.target;
       if (!parentChildrenMap.has(parentId)) {
         parentChildrenMap.set(parentId, []);
       }
@@ -127,95 +174,38 @@ export const getLayoutedElements = (
     nodesByLevel.get(level)!.push(node);
   });
 
-  const levelSpacing = 250; // Increased spacing between parent and child levels
-  const baseY = 50;
-  const nodeWidth = 220;
-  const childSpacing = 150; // Spacing between children of the same parent
-
-  // First, position level 1 nodes (root/central nodes)
-  const level1Nodes = nodesByLevel.get(1) || [];
-  if (level1Nodes.length > 0) {
-    const y = baseY;
-    const spacing = 100;
-    const totalWidth = (level1Nodes.length - 1) * spacing + level1Nodes.length * nodeWidth;
-    const startX = -totalWidth / 2 + nodeWidth / 2;
-
-    level1Nodes.forEach((node, index) => {
-      const centerX = startX + index * (nodeWidth + spacing);
-      node.position = {
-        x: centerX - 110, // Center the node
-        y: y
-      };
-    });
-  }
-
-  // Position children centered below their parents
-  // Process levels from top to bottom
-  for (let level = 2; level <= Math.max(...Array.from(nodesByLevel.keys())); level++) {
+  // Center children under their immediate parent at each level
+  for (let level = 2; level <= maxLevel; level++) {
     const levelNodes = nodesByLevel.get(level) || [];
     if (levelNodes.length === 0) continue;
 
-    const y = baseY + (level - 1) * levelSpacing;
-
-    // Group children by their parent using the parentChildrenMap we built
-    const childrenByParent = new Map<string, Node[]>();
+    // Group by immediate parent
+    const nodesByParent = new Map<string, Node[]>();
     levelNodes.forEach(node => {
-      // Find which parent this node belongs to by checking parentChildrenMap
-      let foundParent = false;
       for (const [parentId, childIds] of parentChildrenMap.entries()) {
         if (childIds.includes(node.id)) {
-          if (!childrenByParent.has(parentId)) {
-            childrenByParent.set(parentId, []);
+          if (!nodesByParent.has(parentId)) {
+            nodesByParent.set(parentId, []);
           }
-          childrenByParent.get(parentId)!.push(node);
-          foundParent = true;
+          nodesByParent.get(parentId)!.push(node);
           break;
         }
       }
-      
-      if (!foundParent) {
-        // If no parent found, treat as orphan (shouldn't happen, but handle gracefully)
-        if (!childrenByParent.has('orphan')) {
-          childrenByParent.set('orphan', []);
-        }
-        childrenByParent.get('orphan')!.push(node);
-      }
     });
 
-    // Position children centered below their parent
-    childrenByParent.forEach((children, parentId) => {
-      if (parentId === 'orphan') {
-        // Handle orphan nodes by centering them
-        const totalWidth = (children.length - 1) * childSpacing + children.length * nodeWidth;
-        const startX = -totalWidth / 2 + nodeWidth / 2;
-        children.forEach((child, index) => {
-          const centerX = startX + index * (nodeWidth + childSpacing);
-          child.position = {
-            x: centerX - 110,
-            y: y
-          };
-        });
-      } else {
-        // Find parent node to get its position
-        const parentNode = nodes.find(n => n.id === parentId);
-        if (parentNode && parentNode.position) {
-          const parentCenterX = parentNode.position.x + nodeWidth / 2;
-          
-          // Calculate total width needed for children
-          const totalWidth = (children.length - 1) * childSpacing + children.length * nodeWidth;
-          // Start position so that children are centered below parent
-          const startX = parentCenterX - totalWidth / 2;
+    // Center children under their parent
+    nodesByParent.forEach((children, parentId) => {
+      const parentNode = nodes.find(n => n.id === parentId);
+      if (!parentNode || !parentNode.position) return;
 
-          // Position children centered below parent
-          children.forEach((child, index) => {
-            const childCenterX = startX + index * (nodeWidth + childSpacing) + nodeWidth / 2;
-            child.position = {
-              x: childCenterX - nodeWidth / 2, // Position so center is at childCenterX
-              y: y
-            };
-          });
-        }
-      }
+      const parentCenterX = parentNode.position.x + nodeWidth / 2;
+      const totalWidth = (children.length - 1) * childSpacing + children.length * nodeWidth;
+      const startX = parentCenterX - totalWidth / 2;
+
+      children.forEach((child, index) => {
+        const nodeCenterX = startX + index * (nodeWidth + childSpacing) + nodeWidth / 2;
+        child.position.x = nodeCenterX - nodeWidth / 2;
+      });
     });
   }
 

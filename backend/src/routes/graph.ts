@@ -8,9 +8,9 @@ const router = Router();
 
 /**
  * POST /api/graph/generate
- * Generate a knowledge graph from a topic (no auth required)
+ * Generate a knowledge graph from a topic (requires authentication)
  */
-router.post('/generate', async (req: AuthRequest, res: Response) => {
+router.post('/generate', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { topic } = req.body as GenerateGraphRequest;
 
@@ -21,6 +21,11 @@ router.post('/generate', async (req: AuthRequest, res: Response) => {
 
     if (topic.length > 200) {
       res.status(400).json({ error: 'Topic is too long (max 200 characters)' });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
       return;
     }
 

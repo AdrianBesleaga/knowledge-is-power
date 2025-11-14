@@ -73,7 +73,14 @@
 .hero-subtitle {
   font-size: 1.25rem;
   color: #666;
+  margin: 0 0 1rem;
+}
+
+.hero-auth-hint {
+  font-size: 1rem;
+  color: #667eea;
   margin: 0 0 3rem;
+  font-weight: 500;
 }
 
 .search-section {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
 import { generateGraph, saveGraph, setAuthToken } from '../services/api';
@@ -6,6 +6,7 @@ import { KnowledgeGraph } from '../components/KnowledgeGraph';
 import { NodeDetailPanel } from '../components/NodeDetailPanel';
 import { SaveGraphButton } from '../components/SaveGraphButton';
 import { ShareButton } from '../components/ShareButton';
+import { UserProfile } from '../components/UserProfile';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../hooks/useAuth';
 import { GraphNode, GraphEdge } from '../types/graph';
@@ -20,21 +21,79 @@ export const HomePage = () => {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingTopic, setPendingTopic] = useState<string | null>(null);
+
+  // Auto-generate graph after successful authentication if there's a pending topic
+  useEffect(() => {
+    if (user && pendingTopic && !showAuthModal) {
+      const generatePendingGraph = async () => {
+        const topic = pendingTopic;
+        setPendingTopic(null); // Clear pending topic first to avoid re-triggering
+        
+        setLoading(true);
+        setError(null);
+        setTopic(topic);
+        setSavedUrl(null);
+
+        try {
+          // Ensure auth token is set
+          const token = await getIdToken();
+          if (token) {
+            setAuthToken(token);
+          }
+
+          const result = await generateGraph(topic);
+          setNodes(result.nodes);
+          setEdges(result.edges);
+        } catch (err: any) {
+          if (err.response?.status === 401) {
+            setError('Please sign in to generate graphs');
+            setShowAuthModal(true);
+          } else {
+            setError(err.response?.data?.error || 'Failed to generate knowledge graph');
+          }
+          console.error('Error generating graph:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      generatePendingGraph();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, pendingTopic, showAuthModal]);
 
   const handleSearch = async (searchTopic: string) => {
+    // Check if user is authenticated
+    if (!user) {
+      setPendingTopic(searchTopic);
+      setShowAuthModal(true);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setTopic(searchTopic);
     setSavedUrl(null);
 
     try {
+      // Ensure auth token is set
+      const token = await getIdToken();
+      if (token) {
+        setAuthToken(token);
+      }
+
       const result = await generateGraph(searchTopic);
       setNodes(result.nodes);
       setEdges(result.edges);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to generate knowledge graph');
+      if (err.response?.status === 401) {
+        setError('Please sign in to generate graphs');
+        setShowAuthModal(true);
+      } else {
+        setError(err.response?.data?.error || 'Failed to generate knowledge graph');
+      }
       console.error('Error generating graph:', err);
     } finally {
       setLoading(false);
@@ -43,7 +102,7 @@ export const HomePage = () => {
 
   const handleSaveGraph = async () => {
     if (!user) {
-      setShowAuthModal(true);
+      // UserProfile component will handle showing auth modal
       return;
     }
 
@@ -76,21 +135,7 @@ export const HomePage = () => {
             >
               Search
             </button>
-            {user ? (
-              <button
-                className="btn-secondary"
-                onClick={() => navigate('/profile')}
-              >
-                My Graphs
-              </button>
-            ) : (
-              <button
-                className="btn-secondary"
-                onClick={() => setShowAuthModal(true)}
-              >
-                Sign In
-              </button>
-            )}
+            <UserProfile />
           </div>
         </div>
       </header>
@@ -103,6 +148,11 @@ export const HomePage = () => {
           <p className="hero-subtitle">
             AI-powered analysis showing relationships and impacts between information sources
           </p>
+          {!user && (
+            <p className="hero-auth-hint">
+              Sign in to generate knowledge graphs
+            </p>
+          )}
           
           <div className="search-section">
             <SearchBar onSearch={handleSearch} loading={loading} />
@@ -134,7 +184,6 @@ export const HomePage = () => {
                   nodes={nodes}
                   edges={edges}
                   onSave={handleSaveGraph}
-                  onAuthRequired={() => setShowAuthModal(true)}
                 />
               </div>
             </div>
@@ -161,12 +210,13 @@ export const HomePage = () => {
 
       <AuthModal
         isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
+        onClose={() => {
+          setShowAuthModal(false);
+          setPendingTopic(null);
+        }}
         onSuccess={() => {
           setShowAuthModal(false);
-          if (nodes.length > 0) {
-            handleSaveGraph();
-          }
+          // The useEffect will handle generating the graph when user state updates
         }}
       />
     </div>

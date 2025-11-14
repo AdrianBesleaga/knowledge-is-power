@@ -4,6 +4,7 @@ import { searchGraphs, searchNodes, getPopularGraphs, getGraphsByCategory, setAu
 import { useAuth } from '../hooks/useAuth';
 import { KnowledgeGraph, GraphNode } from '../types/graph';
 import { SearchBar } from '../components/SearchBar';
+import { UserProfile } from '../components/UserProfile';
 import './SearchPage.css';
 
 type SearchType = 'graphs' | 'nodes' | 'popular' | 'category';
@@ -174,21 +175,7 @@ export const SearchPage = () => {
           </button>
           <h1 className="logo">Knowledge is Power</h1>
           <div className="header-actions">
-            {user ? (
-              <button
-                className="btn-secondary"
-                onClick={() => navigate('/profile')}
-              >
-                My Graphs
-              </button>
-            ) : (
-              <button
-                className="btn-secondary"
-                onClick={() => navigate('/')}
-              >
-                Sign In
-              </button>
-            )}
+            <UserProfile />
           </div>
         </div>
       </header>

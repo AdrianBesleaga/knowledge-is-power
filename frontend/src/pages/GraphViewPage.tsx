@@ -5,6 +5,7 @@ import { KnowledgeGraph as KnowledgeGraphType, GraphNode } from '../types/graph'
 import { KnowledgeGraph } from '../components/KnowledgeGraph';
 import { NodeDetailPanel } from '../components/NodeDetailPanel';
 import { ShareButton } from '../components/ShareButton';
+import { UserProfile } from '../components/UserProfile';
 import { useAuth } from '../hooks/useAuth';
 import './GraphViewPage.css';
 
@@ -97,15 +98,7 @@ export const GraphViewPage = () => {
           </button>
           <h1 className="logo">Knowledge is Power</h1>
           <div className="header-actions">
-            {user ? (
-              <button className="btn-secondary" onClick={() => navigate('/profile')}>
-                My Graphs
-              </button>
-            ) : (
-              <button className="btn-secondary" onClick={() => navigate('/')}>
-                Create Your Own
-              </button>
-            )}
+            <UserProfile />
           </div>
         </div>
       </header>

@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserGraphs, setAuthToken } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
+import { UserProfile } from '../components/UserProfile';
 import { KnowledgeGraph } from '../types/graph';
 import './ProfilePage.css';
 
 export const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user, signOut, getIdToken } = useAuth();
+  const { user, getIdToken } = useAuth();
   const [graphs, setGraphs] = useState<KnowledgeGraph[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,14 +39,6 @@ export const ProfilePage = () => {
     loadGraphs();
   }, [user, navigate, getIdToken]);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/');
-    } catch (err) {
-      console.error('Error signing out:', err);
-    }
-  };
 
   if (loading) {
     return (
@@ -66,9 +59,9 @@ export const ProfilePage = () => {
             ← Back
           </button>
           <h1 className="logo">Knowledge is Power</h1>
-          <button className="btn-secondary" onClick={handleSignOut}>
-            Sign Out
-          </button>
+          <div className="header-actions">
+            <UserProfile />
+          </div>
         </div>
       </header>
 

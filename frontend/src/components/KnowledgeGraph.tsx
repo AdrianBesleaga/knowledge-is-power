@@ -222,15 +222,28 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges }: Knowled
     if (children.length > 0) {
       setExpandedNodes(prev => {
         const newSet = new Set(prev);
-        if (newSet.has(node.id)) {
+        const nodeLevel = nodeLevels.get(node.id) || 1;
+        const isCurrentlyExpanded = newSet.has(node.id);
+        
+        if (isCurrentlyExpanded) {
+          // If closing, just remove this node
           newSet.delete(node.id);
         } else {
+          // If opening, close all other nodes at the same level
+          // but keep their children expanded (if they were already expanded)
+          graphNodes.forEach(otherNode => {
+            const otherLevel = nodeLevels.get(otherNode.id) || 1;
+            if (otherLevel === nodeLevel && otherNode.id !== node.id && newSet.has(otherNode.id)) {
+              newSet.delete(otherNode.id);
+            }
+          });
+          // Add the clicked node
           newSet.add(node.id);
         }
         return newSet;
       });
     }
-  }, [graphEdges]);
+  }, [graphEdges, graphNodes, nodeLevels]);
 
   useEffect(() => {
     // Convert graph nodes to React Flow nodes

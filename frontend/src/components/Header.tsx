@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { UserProfile } from './UserProfile';
+import { Logo } from './Logo';
 import './Header.css';
 
 export const Header = () => {
@@ -10,14 +11,18 @@ export const Header = () => {
   return (
     <header className="app-header">
       <div className="header-content">
-        {!isHomePage && (
-          <button className="back-button" onClick={() => navigate('/')}>
-            ← Back
-          </button>
-        )}
-        <h1 className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          Knowledge is Power
-        </h1>
+        <div className="header-left">
+          <Logo 
+            size={40} 
+            showText={true} 
+            onClick={() => navigate('/')} 
+          />
+          {!isHomePage && (
+            <button className="back-button" onClick={() => navigate('/')}>
+              ← Back
+            </button>
+          )}
+        </div>
         <div className="header-actions">
           {isHomePage && (
             <button

@@ -66,44 +66,13 @@ export const CustomNode = memo(({ data }: CustomNodeProps) => {
 
   return (
     <div 
-      className={`custom-node ${getNodeClass()}`} 
-      onClick={data.onClick}
+      className="custom-node-wrapper"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Handles for hierarchical connections (top/bottom) */}
-      <Handle type="target" position={Position.Top} id="top" />
-      <Handle type="source" position={Position.Bottom} id="bottom" />
-      
-      {/* Handles for same-level connections (left/right) */}
-      <Handle type="target" position={Position.Left} id="left" />
-      <Handle type="source" position={Position.Right} id="right" />
-      
-      {data.level !== undefined && (
-        <div className="node-level-badge">{data.level}</div>
-      )}
-      
-      {data.hasChildren && (
-        <div className={`node-expand-indicator ${data.isExpanded ? 'expanded' : ''}`}>
-          {data.isExpanded ? '▼' : '▶'}
-        </div>
-      )}
-      
-      <div className="node-content">
-        <div className="node-icon">{getCategoryIcon()}</div>
-        <div className="node-label">{data.label}</div>
-        {data.category !== 'central' && (
-          <div className="node-impact">{getImpactText()}</div>
-        )}
-      </div>
-
       {/* Hover tooltip */}
       {isHovered && (
-        <div 
-          className="node-hover-tooltip"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
+        <div className="node-hover-tooltip">
           <div className="tooltip-header">
             <h3>{data.label}</h3>
             <span className="tooltip-category-badge">{data.category}</span>
@@ -167,6 +136,37 @@ export const CustomNode = memo(({ data }: CustomNodeProps) => {
           )}
         </div>
       )}
+
+      <div 
+        className={`custom-node ${getNodeClass()}`} 
+        onClick={data.onClick}
+      >
+        {/* Handles for hierarchical connections (top/bottom) */}
+        <Handle type="target" position={Position.Top} id="top" />
+        <Handle type="source" position={Position.Bottom} id="bottom" />
+        
+        {/* Handles for same-level connections (left/right) */}
+        <Handle type="target" position={Position.Left} id="left" />
+        <Handle type="source" position={Position.Right} id="right" />
+        
+        {data.level !== undefined && (
+          <div className="node-level-badge">{data.level}</div>
+        )}
+        
+        {data.hasChildren && (
+          <div className={`node-expand-indicator ${data.isExpanded ? 'expanded' : ''}`}>
+            {data.isExpanded ? '▼' : '▶'}
+          </div>
+        )}
+        
+        <div className="node-content">
+          <div className="node-icon">{getCategoryIcon()}</div>
+          <div className="node-label">{data.label}</div>
+          {data.category !== 'central' && (
+            <div className="node-impact">{getImpactText()}</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 });

@@ -12,9 +12,9 @@ interface SaveGraphButtonProps {
 }
 
 export const SaveGraphButton = ({
-  topic,
+  topic: _topic,
   nodes,
-  edges,
+  edges: _edges,
   onSave,
   onAuthRequired,
 }: SaveGraphButtonProps) => {

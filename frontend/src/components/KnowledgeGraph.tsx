@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -58,7 +58,6 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges, onNodeClick }: KnowledgeGraphProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
   useEffect(() => {
     // Convert graph nodes to React Flow nodes
@@ -106,7 +105,6 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges, onNodeCli
   }, [graphNodes, graphEdges]);
 
   const handleNodeClick = useCallback((node: GraphNode) => {
-    setSelectedNode(node);
     onNodeClick?.(node);
   }, [onNodeClick]);
 

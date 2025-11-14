@@ -22,14 +22,17 @@ export const InfographicGenerator = ({ graph, onClose }: InfographicGeneratorPro
     setError(null);
 
     try {
+      // Wait a bit to ensure all content is rendered
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Generate canvas with high quality settings
       const canvas = await html2canvas(canvasRef.current, {
-        backgroundColor: '#ffffff',
+        backgroundColor: null, // Transparent background to preserve gradient
         scale: 2, // Higher quality for social media
         logging: false,
         useCORS: true,
-        width: 1200,
-        height: 630,
+        allowTaint: true,
+        removeContainer: false,
       });
 
       // Convert to blob and download
@@ -76,100 +79,113 @@ export const InfographicGenerator = ({ graph, onClose }: InfographicGeneratorPro
           <div ref={canvasRef} className="infographic-canvas">
             {/* Header Section */}
             <div className="infographic-header">
-              <div className="infographic-logo">🧠 Knowledge is Power</div>
+              <div className="infographic-logo">📊 Analysis Report</div>
               <h1 className="infographic-title">{graph.topic}</h1>
               {graph.summary && (
-                <p className="infographic-subtitle">{graph.summary.substring(0, 150)}{graph.summary.length > 150 ? '...' : ''}</p>
+                <p className="infographic-subtitle">{graph.summary.substring(0, 180)}{graph.summary.length > 180 ? '...' : ''}</p>
               )}
             </div>
 
-            {/* Main Content Grid */}
+            {/* Main Content - Vertical Layout */}
             <div className="infographic-content">
-              {/* Left Column - Statistics */}
+              {/* Key Metrics Section */}
               <div className="infographic-stats">
                 <div className="stat-card">
-                  <div className="stat-value">{insights.totalNodes}</div>
-                  <div className="stat-label">Nodes</div>
+                  <div className="stat-value">{insights.totalFindings}</div>
+                  <div className="stat-label">Key Findings</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-value">{insights.totalEdges}</div>
-                  <div className="stat-label">Connections</div>
+                  <div className="stat-value" style={{ color: getImpactColor(insights.averageImpact) }}>
+                    {formatImpactScore(insights.averageImpact)}
+                  </div>
+                  <div className="stat-label">Average Impact</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-value">{insights.categories.length}</div>
-                  <div className="stat-label">Categories</div>
+                  <div className="stat-value">{insights.keyRelationships.length}</div>
+                  <div className="stat-label">Key Relationships</div>
                 </div>
               </div>
 
-              {/* Center Column - Top Nodes */}
-              <div className="infographic-top-nodes">
-                <h3 className="infographic-section-title">Top Impact Nodes</h3>
-                <div className="top-nodes-list">
-                  {insights.topNodesByImpact.slice(0, 4).length > 0 ? (
-                    insights.topNodesByImpact.slice(0, 4).map((node, idx) => (
-                      <div key={node.id} className="top-node-item">
+              {/* Top Findings Section */}
+              {insights.topFindings.length > 0 && (
+                <div className="infographic-top-nodes">
+                  <h3 className="infographic-section-title">Top Findings</h3>
+                  <div className="top-nodes-list">
+                    {insights.topFindings.slice(0, 5).map((finding, idx) => (
+                      <div key={idx} className="top-node-item">
                         <div className="top-node-rank">#{idx + 1}</div>
                         <div className="top-node-content">
-                          <div className="top-node-label">{node.label}</div>
+                          <div className="top-node-label">{finding.label}</div>
+                          <div className="top-node-summary">{finding.summary.substring(0, 100)}{finding.summary.length > 100 ? '...' : ''}</div>
                           <div className="top-node-impact">
                             <span
                               className="top-node-score"
-                              style={{ color: getImpactColor(node.impactScore, node.category) }}
+                              style={{ color: getImpactColor(finding.impactScore) }}
                             >
-                              {formatImpactScore(node.impactScore)}
+                              {formatImpactScore(finding.impactScore)} Impact
                             </span>
-                            <span className="top-node-category">{node.category}</span>
                           </div>
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="top-node-item">
-                      <div className="top-node-content">
-                        <div className="top-node-label">No nodes available</div>
-                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Impact Analysis Section */}
+              <div className="infographic-insights">
+                <h3 className="infographic-section-title">Impact Analysis</h3>
+                <div className="insights-list">
+                  <div className="insight-item">
+                    <div className="insight-icon positive">✓</div>
+                    <div className="insight-content">
+                      <div className="insight-value">{insights.positiveFactors}</div>
+                      <div className="insight-label">Positive Factors</div>
                     </div>
-                  )}
+                  </div>
+                  <div className="insight-item">
+                    <div className="insight-icon negative">⚠</div>
+                    <div className="insight-content">
+                      <div className="insight-value">{insights.negativeFactors}</div>
+                      <div className="insight-label">Risk Factors</div>
+                    </div>
+                  </div>
+                  <div className="insight-item">
+                    <div className="insight-icon neutral">○</div>
+                    <div className="insight-content">
+                      <div className="insight-value">{insights.neutralFactors}</div>
+                      <div className="insight-label">Neutral Factors</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Right Column - Insights */}
-              <div className="infographic-insights">
-                <h3 className="infographic-section-title">Key Insights</h3>
-                <div className="insights-list">
-                  <div className="insight-item">
-                    <div className="insight-icon positive">+</div>
-                    <div className="insight-content">
-                      <div className="insight-value">{insights.positiveNodes}</div>
-                      <div className="insight-label">Positive Impact</div>
-                    </div>
-                  </div>
-                  <div className="insight-item">
-                    <div className="insight-icon negative">-</div>
-                    <div className="insight-content">
-                      <div className="insight-value">{insights.negativeNodes}</div>
-                      <div className="insight-label">Negative Impact</div>
-                    </div>
-                  </div>
-                  {insights.strongestRelationships.length > 0 && (
-                    <div className="insight-item">
-                      <div className="insight-icon relationship">🔗</div>
-                      <div className="insight-content">
-                        <div className="insight-value">{insights.strongestRelationships[0].relationship}</div>
-                        <div className="insight-label">Strongest Link</div>
+              {/* Key Relationships Section */}
+              {insights.keyRelationships.length > 0 && (
+                <div className="infographic-relationships">
+                  <h3 className="infographic-section-title">Key Relationships</h3>
+                  <div className="relationships-list">
+                    {insights.keyRelationships.map((rel, idx) => (
+                      <div key={idx} className="relationship-item">
+                        <div className="relationship-content">
+                          <div className="relationship-text">
+                            <span className="relationship-source">{rel.source}</span>
+                            <span className="relationship-arrow">→</span>
+                            <span className="relationship-target">{rel.target}</span>
+                          </div>
+                          <div className="relationship-type">{rel.relationship}</div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Footer */}
             <div className="infographic-footer">
               <div className="infographic-footer-left">
-                <span>Created: {formattedDate}</span>
-                <span>•</span>
-                <span>{graph.viewCount} views</span>
+                <span>Analysis Date: {formattedDate}</span>
               </div>
               <div className="infographic-footer-right">
                 knowledgeispower.app

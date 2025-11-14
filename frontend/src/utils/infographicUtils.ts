@@ -1,46 +1,60 @@
 import { KnowledgeGraph, GraphNode, GraphEdge } from '../types/graph';
 
 export interface GraphInsights {
-  totalNodes: number;
-  totalEdges: number;
-  topNodesByImpact: GraphNode[];
-  categories: { category: string; count: number }[];
-  strongestRelationships: Array<{
+  totalFindings: number;
+  topFindings: Array<{
+    label: string;
+    summary: string;
+    impactScore: number;
+    category: string;
+  }>;
+  keyRelationships: Array<{
     source: string;
     target: string;
     relationship: string;
     strength: number;
   }>;
-  averageImpactScore: number;
-  positiveNodes: number;
-  negativeNodes: number;
-  neutralNodes: number;
+  positiveFactors: number;
+  negativeFactors: number;
+  neutralFactors: number;
+  averageImpact: number;
+  topCategories: Array<{ category: string; count: number }>;
 }
 
 /**
- * Extract key insights from a knowledge graph
+ * Extract key business insights from a knowledge graph
  */
 export function extractGraphInsights(graph: KnowledgeGraph): GraphInsights {
   const { nodes, edges } = graph;
 
-  // Top nodes by absolute impact score
-  const topNodesByImpact = [...nodes]
+  // Top findings by absolute impact score (excluding central topic)
+  const topFindings = [...nodes]
+    .filter(n => n.category !== 'central')
     .sort((a, b) => Math.abs(b.impactScore) - Math.abs(a.impactScore))
-    .slice(0, 5);
+    .slice(0, 5)
+    .map(node => ({
+      label: node.label,
+      summary: node.summary,
+      impactScore: node.impactScore,
+      category: node.category,
+    }));
 
-  // Category distribution
+  // Top categories
   const categoryMap = new Map<string, number>();
   nodes.forEach(node => {
-    categoryMap.set(node.category, (categoryMap.get(node.category) || 0) + 1);
+    if (node.category !== 'central') {
+      categoryMap.set(node.category, (categoryMap.get(node.category) || 0) + 1);
+    }
   });
-  const categories = Array.from(categoryMap.entries())
+  const topCategories = Array.from(categoryMap.entries())
     .map(([category, count]) => ({ category, count }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3);
 
-  // Strongest relationships
-  const strongestRelationships = [...edges]
+  // Key relationships
+  const keyRelationships = [...edges]
     .sort((a, b) => b.strength - a.strength)
-    .slice(0, 5)
+    .slice(0, 3)
     .map(edge => {
       const sourceNode = nodes.find(n => n.id === edge.source);
       const targetNode = nodes.find(n => n.id === edge.target);
@@ -53,24 +67,24 @@ export function extractGraphInsights(graph: KnowledgeGraph): GraphInsights {
     });
 
   // Impact statistics
-  const averageImpactScore = nodes.length > 0
-    ? nodes.reduce((sum, node) => sum + node.impactScore, 0) / nodes.length
+  const nonCentralNodes = nodes.filter(n => n.category !== 'central');
+  const averageImpact = nonCentralNodes.length > 0
+    ? nonCentralNodes.reduce((sum, node) => sum + node.impactScore, 0) / nonCentralNodes.length
     : 0;
 
-  const positiveNodes = nodes.filter(n => n.impactScore > 0 && n.category !== 'central').length;
-  const negativeNodes = nodes.filter(n => n.impactScore < 0).length;
-  const neutralNodes = nodes.filter(n => n.impactScore === 0 && n.category !== 'central').length;
+  const positiveFactors = nonCentralNodes.filter(n => n.impactScore > 0).length;
+  const negativeFactors = nonCentralNodes.filter(n => n.impactScore < 0).length;
+  const neutralFactors = nonCentralNodes.filter(n => n.impactScore === 0).length;
 
   return {
-    totalNodes: nodes.length,
-    totalEdges: edges.length,
-    topNodesByImpact,
-    categories,
-    strongestRelationships,
-    averageImpactScore,
-    positiveNodes,
-    negativeNodes,
-    neutralNodes,
+    totalFindings: nodes.length - 1, // Exclude central topic
+    topFindings,
+    keyRelationships,
+    positiveFactors,
+    negativeFactors,
+    neutralFactors,
+    averageImpact,
+    topCategories,
   };
 }
 

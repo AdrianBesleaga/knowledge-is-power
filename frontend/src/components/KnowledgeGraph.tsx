@@ -173,7 +173,7 @@ export const getLayoutedElements = (
   return { nodes, edges };
 };
 
-export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges, onNodeClick }: KnowledgeGraphProps) => {
+export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges }: KnowledgeGraphProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -242,7 +242,7 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges, onNodeCli
   }, [graphNodes, visibleNodeIds]);
 
   const handleNodeClick = useCallback((node: GraphNode) => {
-    onNodeClick?.(node);
+    // Disabled: onNodeClick?.(node); // Pop-up disabled - only hover tooltip shows info
 
     // Toggle expansion of node's children
     const children = getChildren(node.id, graphEdges);
@@ -257,7 +257,7 @@ export const KnowledgeGraph = ({ nodes: graphNodes, edges: graphEdges, onNodeCli
         return newSet;
       });
     }
-  }, [onNodeClick, graphEdges]);
+  }, [graphEdges]);
 
   useEffect(() => {
     // Convert graph nodes to React Flow nodes

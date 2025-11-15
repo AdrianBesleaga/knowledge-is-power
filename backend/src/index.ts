@@ -4,8 +4,10 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { initFirebase } from './config/firebase';
 import { initNeo4j, closeNeo4j } from './config/neo4j';
+import { initMongoDB, closeMongoDB } from './config/mongodb';
 import graphRoutes from './routes/graph';
 import userRoutes from './routes/user';
+import timelineRoutes from './routes/timeline';
 
 // Load environment variables
 // Resolve .env path relative to backend directory
@@ -93,6 +95,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/graph', graphRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/timeline', timelineRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -108,38 +111,57 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   });
 });
 
-// Start server
-// Bind to 0.0.0.0 to accept connections from all network interfaces (required for fly.io, Railway, etc.)
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Frontend URL: ${FRONTEND_URL}`);
-  console.log(`🌐 Listening on 0.0.0.0:${PORT}`);
-});
+// Initialize MongoDB and start server
+(async () => {
+  try {
+    await initMongoDB();
+    console.log('✅ MongoDB initialized');
+  } catch (error) {
+    console.error('❌ Failed to initialize MongoDB:', error);
+    process.exit(1);
+  }
 
-// Graceful shutdown
-const shutdown = async () => {
-  console.log('\n🛑 Shutting down gracefully...');
-  
-  server.close(async () => {
-    console.log('✅ HTTP server closed');
-    
-    try {
-      await closeNeo4j();
-      console.log('✅ Neo4j connection closed');
-    } catch (error) {
-      console.error('❌ Error closing Neo4j:', error);
-    }
-    
-    process.exit(0);
+  // Start server
+  // Bind to 0.0.0.0 to accept connections from all network interfaces (required for fly.io, Railway, etc.)
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 Frontend URL: ${FRONTEND_URL}`);
+    console.log(`🌐 Listening on 0.0.0.0:${PORT}`);
   });
 
-  // Force shutdown after 10 seconds
-  setTimeout(() => {
-    console.error('⚠️ Forced shutdown after timeout');
-    process.exit(1);
-  }, 10000);
-};
+  // Graceful shutdown
+  const shutdown = async () => {
+    console.log('\n🛑 Shutting down gracefully...');
+    
+    server.close(async () => {
+      console.log('✅ HTTP server closed');
+      
+      try {
+        await closeNeo4j();
+        console.log('✅ Neo4j connection closed');
+      } catch (error) {
+        console.error('❌ Error closing Neo4j:', error);
+      }
+      
+      try {
+        await closeMongoDB();
+        console.log('✅ MongoDB connection closed');
+      } catch (error) {
+        console.error('❌ Error closing MongoDB:', error);
+      }
+      
+      process.exit(0);
+    });
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+      console.error('⚠️ Forced shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+})();
+
 

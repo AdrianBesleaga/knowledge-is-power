@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { KnowledgeGraph, GraphNode, GraphEdge } from '../types/graph';
+import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -57,6 +58,11 @@ export const getGraphBySlug = async (slug: string): Promise<KnowledgeGraph> => {
 export const getUserGraphs = async (): Promise<KnowledgeGraph[]> => {
   const response = await api.get('/api/user/graphs');
   return response.data.graphs;
+};
+
+export const getUserTimelines = async (): Promise<TimelineAnalysis[]> => {
+  const response = await api.get('/api/user/timelines');
+  return response.data.timelines;
 };
 
 export const getUserProfile = async (): Promise<{
@@ -147,5 +153,132 @@ export const updateGraphVisibility = async (
     isPublic,
   });
   return response.data;
+};
+
+// Timeline API methods
+export const generateTimeline = async (topic: string): Promise<{
+  success: boolean;
+  topic: string;
+  valueLabel: string;
+  pastEntries: TimelineEntry[];
+  presentEntry: TimelineEntry;
+  predictions: Prediction[];
+}> => {
+  const response = await api.post('/api/timeline/generate', { topic });
+  return response.data;
+};
+
+export const saveTimeline = async (
+  topic: string,
+  valueLabel: string,
+  pastEntries: TimelineEntry[],
+  presentEntry: TimelineEntry,
+  predictions: Prediction[],
+  isPublic: boolean = false
+): Promise<{
+  success: boolean;
+  timeline: TimelineAnalysis;
+  url: string;
+}> => {
+  const response = await api.post('/api/timeline/save', {
+    topic,
+    valueLabel,
+    pastEntries,
+    presentEntry,
+    predictions,
+    isPublic,
+  });
+  return response.data;
+};
+
+
+export const getPopularTimelines = async (
+  limit: number = 20,
+  days: number = 30
+): Promise<{ success: boolean; timelines: TimelineAnalysis[] }> => {
+  const response = await api.get('/api/timeline/popular', {
+    params: { limit, days },
+  });
+  return response.data;
+};
+
+export const getTimelineByTopic = async (
+  topic: string,
+  limit: number = 20,
+  offset: number = 0
+): Promise<{
+  success: boolean;
+  timelines: TimelineAnalysis[];
+  total: number;
+  limit: number;
+  offset: number;
+}> => {
+  const response = await api.get(`/api/timeline/topic/${encodeURIComponent(topic)}`, {
+    params: { limit, offset },
+  });
+  return response.data;
+};
+
+export const updateTimelineVisibility = async (
+  slug: string,
+  isPublic: boolean
+): Promise<{ success: boolean; timeline: TimelineAnalysis }> => {
+  const response = await api.patch(`/api/timeline/${slug}/visibility`, {
+    isPublic,
+  });
+  return response.data;
+};
+
+export const reprocessTimeline = async (
+  slug: string
+): Promise<{
+  success: boolean;
+  presentEntry: TimelineEntry;
+  predictions: Prediction[];
+  previousValue: number;
+  newValue: number;
+  valueChange: number;
+}> => {
+  const response = await api.post(`/api/timeline/${slug}/reprocess`);
+  return response.data;
+};
+
+export const saveTimelineVersion = async (
+  slug: string,
+  presentEntry: TimelineEntry,
+  predictions: Prediction[]
+): Promise<{
+  success: boolean;
+  version: number;
+  timeline: TimelineAnalysis;
+  previousValue: number;
+  newValue: number;
+  valueChange: number;
+}> => {
+  const response = await api.post(`/api/timeline/${slug}/save-version`, {
+    presentEntry,
+    predictions,
+  });
+  return response.data;
+};
+
+export const getTimelineVersions = async (
+  slug: string
+): Promise<{
+  success: boolean;
+  versions: Array<{
+    version: number;
+    createdAt: string;
+    presentValue: number;
+  }>;
+}> => {
+  const response = await api.get(`/api/timeline/${slug}/versions`);
+  return response.data;
+};
+
+export const getTimelineBySlug = async (slug: string, version?: number): Promise<TimelineAnalysis> => {
+  const params = version ? { version } : {};
+  const response = await api.get(`/api/timeline/${slug}`, { params });
+  return response.data.timeline;
 };
 

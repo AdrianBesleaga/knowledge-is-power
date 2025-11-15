@@ -156,6 +156,20 @@ export const UserProfile = () => {
             </button>
             <button
               className="dropdown-item"
+              onClick={() => {
+                navigate('/timeline');
+                setIsOpen(false);
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <polyline points="12,3 3,12 12,21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <polyline points="21,3 12,12 21,21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              My AI Predictions
+            </button>
+            <button
+              className="dropdown-item"
               onClick={handleSignOut}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

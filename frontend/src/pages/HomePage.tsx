@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
-import { generateGraph, saveGraph, setAuthToken, getPopularGraphs } from '../services/api';
+import { generateGraph, saveGraph, setAuthToken, getPopularGraphs, getPopularTimelines } from '../services/api';
 import { KnowledgeGraph } from '../components/KnowledgeGraph';
 import { NodeDetailPanel } from '../components/NodeDetailPanel';
 import { SaveGraphButton } from '../components/SaveGraphButton';
@@ -9,6 +9,7 @@ import { ShareButton } from '../components/ShareButton';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../hooks/useAuth';
 import { GraphNode, GraphEdge, KnowledgeGraph as KnowledgeGraphType } from '../types/graph';
+import { TimelineAnalysis } from '../types/timeline';
 import './HomePage.css';
 
 export const HomePage = () => {
@@ -26,6 +27,24 @@ export const HomePage = () => {
   const [pendingTopic, setPendingTopic] = useState<string | null>(null);
   const [popularGraphs, setPopularGraphs] = useState<KnowledgeGraphType[]>([]);
   const [loadingPopular, setLoadingPopular] = useState(true);
+  const [popularTimelines, setPopularTimelines] = useState<TimelineAnalysis[]>([]);
+  const [loadingPopularTimelines, setLoadingPopularTimelines] = useState(true);
+
+  // Load popular timelines on mount
+  useEffect(() => {
+    const loadPopularTimelines = async () => {
+      try {
+        setLoadingPopularTimelines(true);
+        const result = await getPopularTimelines(30, 30); // Top 30 from last 30 days
+        setPopularTimelines(result.timelines);
+      } catch (err) {
+        console.error('Error loading popular timelines:', err);
+      } finally {
+        setLoadingPopularTimelines(false);
+      }
+    };
+    loadPopularTimelines();
+  }, []);
 
   // Load popular graphs on mount
   useEffect(() => {
@@ -219,52 +238,99 @@ export const HomePage = () => {
         )}
 
         {!topic && (
-          <div className="popular-graphs-section">
-            <div className="section-header">
-              <h2>Top 30 Popular Graphs</h2>
-              <p className="section-subtitle">Most viewed knowledge graphs from the last 30 days</p>
+          <>
+            <div className="popular-timelines-section">
+              <div className="section-header">
+                <h2>Top 30 AI Predictions</h2>
+                <p className="section-subtitle">Most viewed AI predictions from the last 30 days</p>
+              </div>
+
+              {loadingPopularTimelines ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>Loading popular AI predictions...</p>
+                </div>
+              ) : popularTimelines.length > 0 ? (
+                <div className="graphs-grid">
+                  {popularTimelines.map((timeline) => (
+                    <div
+                      key={timeline.id}
+                      className="graph-card"
+                      onClick={() => navigate(`/timeline/${timeline.slug}`)}
+                    >
+                      <h3>{timeline.topic}</h3>
+                      <p className="graph-card-summary">Tracking: {timeline.valueLabel}</p>
+                      <div className="graph-card-meta">
+                        <span className="date">
+                          {new Date(timeline.createdAt).toLocaleDateString()}
+                        </span>
+                        <span>•</span>
+                        <span className="views">{timeline.viewCount} views</span>
+                      </div>
+                      <div className="graph-card-footer">
+                        <span className={`visibility-badge ${timeline.isPublic ? 'public' : 'private'}`}>
+                          {timeline.isPublic ? '🌐 Public' : '🔒 Private'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-icon">📈</div>
+                  <h3>No popular AI predictions yet</h3>
+                  <p>Be the first to create and share an AI prediction!</p>
+                </div>
+              )}
             </div>
 
-            {loadingPopular ? (
-              <div className="loading-state">
-                <div className="spinner"></div>
-                <p>Loading popular graphs...</p>
+            <div className="popular-graphs-section">
+              <div className="section-header">
+                <h2>Top 30 Popular Graphs</h2>
+                <p className="section-subtitle">Most viewed knowledge graphs from the last 30 days</p>
               </div>
-            ) : popularGraphs.length > 0 ? (
-              <div className="graphs-grid">
-                {popularGraphs.map((graph) => (
-                  <div
-                    key={graph.id}
-                    className="graph-card"
-                    onClick={() => navigate(`/graph/${graph.slug}`)}
-                  >
-                    <h3>{graph.topic}</h3>
-                    {graph.summary && (
-                      <p className="graph-card-summary">{graph.summary}</p>
-                    )}
-                    <div className="graph-card-meta">
-                      <span className="date">
-                        {new Date(graph.createdAt).toLocaleDateString()}
-                      </span>
-                      <span>•</span>
-                      <span className="views">{graph.viewCount} views</span>
+
+              {loadingPopular ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>Loading popular graphs...</p>
+                </div>
+              ) : popularGraphs.length > 0 ? (
+                <div className="graphs-grid">
+                  {popularGraphs.map((graph) => (
+                    <div
+                      key={graph.id}
+                      className="graph-card"
+                      onClick={() => navigate(`/graph/${graph.slug}`)}
+                    >
+                      <h3>{graph.topic}</h3>
+                      {graph.summary && (
+                        <p className="graph-card-summary">{graph.summary}</p>
+                      )}
+                      <div className="graph-card-meta">
+                        <span className="date">
+                          {new Date(graph.createdAt).toLocaleDateString()}
+                        </span>
+                        <span>•</span>
+                        <span className="views">{graph.viewCount} views</span>
+                      </div>
+                      <div className="graph-card-footer">
+                        <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
+                          {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="graph-card-footer">
-                      <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
-                        {graph.isPublic ? '🌐 Public' : '🔒 Private'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <div className="empty-icon">📊</div>
-                <h3>No popular graphs yet</h3>
-                <p>Be the first to create and share a knowledge graph!</p>
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-icon">📊</div>
+                  <h3>No popular graphs yet</h3>
+                  <p>Be the first to create and share a knowledge graph!</p>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </main>
 

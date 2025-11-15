@@ -274,7 +274,7 @@ IMPORTANT: Provide results for ALL ${parentFactors.length} factors listed above.
         ],
         temperature: 0.7,
         response_format: { type: "json_object" },
-        max_tokens: 16000 // Increased to handle larger batch responses
+        max_completion_tokens: 16000 // Increased to handle larger batch responses
       });
 
       const content = completion.choices[0].message.content;
@@ -676,7 +676,7 @@ Respond with ONLY the summary text, no additional formatting or labels.`;
           }
         ],
         temperature: 0.7,
-        max_tokens: 400,
+        max_completion_tokens: 400,
       });
 
       const summary = completion.choices[0].message.content?.trim() || '';

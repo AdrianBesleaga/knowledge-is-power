@@ -1,65 +1,6 @@
-export interface GraphNode {
-  id: string;
-  label: string;
-  summary: string;
-  sources: string[];
-  impactScore: number; // -1 to 1 (negative to positive impact)
-  category: string; // e.g., "news", "social", "economic", "technical"
-}
-
-export interface GraphEdge {
-  source: string;
-  target: string;
-  relationship: string;
-  strength: number; // 0 to 1
-}
-
-export interface KnowledgeGraph {
-  id: string;
-  slug: string;
-  topic: string;
-  label: string;
-  summary: string;
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-  createdAt: Date;
-  userId: string | null;
-  isPublic: boolean;
-  viewCount: number;
-}
-
-export interface GenerateGraphRequest {
-  topic: string;
-}
-
-export interface SaveGraphRequest {
-  topic: string;
-  summary?: string;
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-  isPublic: boolean;
-}
-
-export interface AIFactorAnalysis {
-  factors: Array<{
-    id: string;
-    name: string;
-    description: string;
-    category: string;
-    sources: string[];
-    impactScore: number;
-  }>;
-  relationships: Array<{
-    from: string;
-    to: string;
-    relationship: string;
-    strength: number;
-  }>;
-}
-
-// Timeline types
+// Timeline types for frontend
 export interface TimelineEntry {
-  date: Date;
+  date: string; // ISO date string
   value: number;
   valueLabel: string; // e.g., "Price (USD)", "Population"
   summary: string;
@@ -88,8 +29,8 @@ export interface TimelineAnalysis {
   pastEntries: TimelineEntry[]; // Up to 10 years back
   presentEntry: TimelineEntry; // Current state
   predictions: Prediction[]; // Fixed intervals: 1m, 1y, 2y-10y
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
   userId: string | null;
   isPublic: boolean;
   viewCount: number;

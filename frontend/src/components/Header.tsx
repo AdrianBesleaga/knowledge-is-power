@@ -25,12 +25,20 @@ export const Header = () => {
         </div>
         <div className="header-actions">
           {isHomePage && (
-            <button
-              className="btn-secondary"
-              onClick={() => navigate('/search')}
-            >
-              Search
-            </button>
+            <>
+              <button
+                className="btn-secondary"
+                onClick={() => navigate('/timeline')}
+              >
+                Timeline
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => navigate('/search')}
+              >
+                Search
+              </button>
+            </>
           )}
           <UserProfile />
         </div>

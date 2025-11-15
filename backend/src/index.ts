@@ -32,6 +32,42 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Request logging middleware
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const startTime = Date.now();
+  const timestamp = new Date().toISOString();
+  
+  // Log request
+  const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+  console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${clientIp}`);
+  
+  // Log request body for POST/PUT/PATCH (excluding sensitive data)
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
+    const sanitizedBody = { ...req.body };
+    // Remove sensitive fields from logs
+    if (sanitizedBody.password) sanitizedBody.password = '[REDACTED]';
+    if (sanitizedBody.token) sanitizedBody.token = '[REDACTED]';
+    if (sanitizedBody.privateKey) sanitizedBody.privateKey = '[REDACTED]';
+    console.log(`[${timestamp}] Request body:`, JSON.stringify(sanitizedBody, null, 2));
+  }
+  
+  // Log query parameters if present
+  if (Object.keys(req.query).length > 0) {
+    console.log(`[${timestamp}] Query params:`, req.query);
+  }
+  
+  // Capture response finish to log status and duration
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    const statusColor = res.statusCode >= 500 ? '🔴' : res.statusCode >= 400 ? '🟡' : '🟢';
+    console.log(
+      `[${new Date().toISOString()}] ${statusColor} ${req.method} ${req.path} - ${res.statusCode} - ${duration}ms`
+    );
+  });
+  
+  next();
+});
+
 // Initialize services
 try {
   initFirebase();

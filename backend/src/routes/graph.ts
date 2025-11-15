@@ -96,10 +96,9 @@ router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) 
 });
 
 /**
- * GET /api/graph/debug/stats
- * Debug endpoint to check database connection and get basic stats
+ * Debug endpoint handler to check database connection and get basic stats
  */
-router.get('/debug/stats', async (req: Request, res: Response) => {
+const debugStatsHandler = async (req: Request, res: Response) => {
   try {
     const driver = getNeo4jDriver();
     const session = driver.session();
@@ -143,7 +142,15 @@ router.get('/debug/stats', async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
-});
+};
+
+/**
+ * GET /api/graph/debug/stats
+ * GET /api/graph/debug/status
+ * Debug endpoint to check database connection and get basic stats
+ */
+router.get('/debug/stats', debugStatsHandler);
+router.get('/debug/status', debugStatsHandler);
 
 /**
  * GET /api/graph/search

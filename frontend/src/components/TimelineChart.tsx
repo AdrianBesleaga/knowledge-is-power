@@ -107,12 +107,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // Prediction tooltip component that shows all 3 scenarios
 interface PredictionTooltipProps {
   prediction: Prediction;
-  dateLabel: string;
   onPredictionClick?: (prediction: Prediction) => void;
   position: { x: number; y: number };
 }
 
-const PredictionTooltip = ({ prediction, dateLabel, onPredictionClick, position }: PredictionTooltipProps) => {
+const PredictionTooltip = ({ prediction, onPredictionClick, position }: PredictionTooltipProps) => {
   const getConfidenceColor = (score: number): string => {
     if (score >= 70) return '#10b981';
     if (score >= 40) return '#f59e0b';
@@ -461,7 +460,6 @@ export const TimelineChart = ({
           >
             <PredictionTooltip
               prediction={hoveredPrediction.prediction}
-              dateLabel={hoveredPrediction.dateLabel}
               onPredictionClick={onPredictionClick}
               position={hoveredPrediction.position}
             />

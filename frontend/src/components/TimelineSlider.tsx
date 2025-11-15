@@ -107,7 +107,7 @@ export const TimelineSlider = ({
   return (
     <div className="timeline-slider">
       <div className="timeline-track">
-        {periods.map((period, idx) => (
+        {periods.map((period) => (
           <button
             key={period.id}
             className={`timeline-marker ${period.type} ${selectedPeriod === period.id ? 'active' : ''}`}

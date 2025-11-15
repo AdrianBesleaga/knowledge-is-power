@@ -16,7 +16,6 @@ export const PredictionPage = () => {
   const { user, getIdToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [topic, setTopic] = useState('');
   const [timeline, setTimeline] = useState<TimelineAnalysis | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingTopic, setPendingTopic] = useState<string | null>(null);
@@ -97,7 +96,6 @@ export const PredictionPage = () => {
       if (!slug) {
         // Clear timeline state when navigating back to /timeline without slug
         setTimeline(null);
-        setTopic('');
         setReprocessedData(null);
         return;
       }
@@ -117,7 +115,6 @@ export const PredictionPage = () => {
         const versionToLoad = selectedVersion || undefined;
         const loadedTimeline = await getTimelineBySlug(slug, versionToLoad);
         setTimeline(loadedTimeline);
-        setTopic(loadedTimeline.topic);
         setReprocessedData(null); // Clear any reprocessed data when loading a timeline
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load timeline');
@@ -139,7 +136,6 @@ export const PredictionPage = () => {
 
         setLoading(true);
         setError(null);
-        setTopic(topic);
 
         try {
           const token = await getIdToken();
@@ -148,20 +144,8 @@ export const PredictionPage = () => {
           }
 
           const result = await generateTimeline(topic);
-          setTimeline({
-            id: '',
-            slug: '',
-            topic: result.topic,
-            valueLabel: result.valueLabel,
-            pastEntries: result.pastEntries,
-            presentEntry: result.presentEntry,
-            predictions: result.predictions,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            userId: user.uid,
-            isPublic: false,
-            viewCount: 0,
-          });
+          // Timeline is now automatically saved, use the saved timeline from the response
+          setTimeline(result.timeline);
         } catch (err: any) {
           if (err.response?.status === 401) {
             setError('Please sign in to generate timelines');
@@ -187,7 +171,6 @@ export const PredictionPage = () => {
 
     setLoading(true);
     setError(null);
-    setTopic(searchTopic);
 
     try {
       const token = await getIdToken();
@@ -196,21 +179,8 @@ export const PredictionPage = () => {
       }
 
       const result = await generateTimeline(searchTopic);
-      setTimeline({
-        id: '',
-        slug: '',
-        topic: result.topic,
-        valueLabel: result.valueLabel,
-        pastEntries: result.pastEntries,
-        presentEntry: result.presentEntry,
-        predictions: result.predictions,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        userId: user.uid,
-        isPublic: false,
-        viewCount: 0,
-      });
-      setSelectedPeriod('present');
+      // Timeline is now automatically saved, use the saved timeline from the response
+      setTimeline(result.timeline);
     } catch (err: any) {
       if (err.response?.status === 401) {
         setError('Please sign in to generate timelines');

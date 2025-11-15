@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { KnowledgeGraph, GraphNode, GraphEdge } from '../types/graph';
-import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
+import { TimelineAnalysis, TimelineEntry, Prediction } from '../types/timeline';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -156,15 +156,17 @@ export const updateGraphVisibility = async (
 };
 
 // Timeline API methods
-export const generateTimeline = async (topic: string): Promise<{
+export const generateTimeline = async (topic: string, isPublic?: boolean): Promise<{
   success: boolean;
   topic: string;
   valueLabel: string;
   pastEntries: TimelineEntry[];
   presentEntry: TimelineEntry;
   predictions: Prediction[];
+  timeline: TimelineAnalysis;
+  url: string;
 }> => {
-  const response = await api.post('/api/timeline/generate', { topic });
+  const response = await api.post('/api/timeline/generate', { topic, isPublic });
   return response.data;
 };
 

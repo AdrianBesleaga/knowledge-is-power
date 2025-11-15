@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { updateGraphVisibility, setAuthToken } from '../services/api';
+import { updateGraphVisibility, updateTimelineVisibility, setAuthToken } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { KnowledgeGraph } from '../types/graph';
+import { TimelineAnalysis } from '../types/timeline';
 import { InfographicGenerator } from './InfographicGenerator';
 import './ShareButton.css';
 
@@ -9,10 +10,11 @@ interface ShareButtonProps {
   url: string;
   slug?: string;
   graph?: KnowledgeGraph;
+  timeline?: TimelineAnalysis;
   onVisibilityChange?: (isPublic: boolean) => void;
 }
 
-export const ShareButton = ({ url, slug, graph, onVisibilityChange }: ShareButtonProps) => {
+export const ShareButton = ({ url, slug, graph, timeline, onVisibilityChange }: ShareButtonProps) => {
   const [copied, setCopied] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [showInfographic, setShowInfographic] = useState(false);
@@ -22,7 +24,7 @@ export const ShareButton = ({ url, slug, graph, onVisibilityChange }: ShareButto
     const fullUrl = `${window.location.origin}${url}`;
     
     try {
-      // If slug is provided, make the graph public when sharing
+      // If slug is provided, make the graph/timeline public when sharing
       if (slug && user) {
         setUpdating(true);
         try {
@@ -30,10 +32,16 @@ export const ShareButton = ({ url, slug, graph, onVisibilityChange }: ShareButto
           if (token) {
             setAuthToken(token);
           }
-          await updateGraphVisibility(slug, true);
+          
+          if (graph) {
+            await updateGraphVisibility(slug, true);
+          } else if (timeline) {
+            await updateTimelineVisibility(slug, true);
+          }
+          
           onVisibilityChange?.(true);
         } catch (error) {
-          console.error('Failed to update graph visibility:', error);
+          console.error('Failed to update visibility:', error);
           // Continue with copying even if visibility update fails
         } finally {
           setUpdating(false);

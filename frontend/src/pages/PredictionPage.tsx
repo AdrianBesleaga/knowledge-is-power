@@ -5,6 +5,7 @@ import { generateTimeline, saveTimeline, setAuthToken, getTimelineBySlug, reproc
 import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
 import { TimelineChart } from '../components/TimelineChart';
 import { PredictionModal } from '../components/PredictionModal';
+import { ShareButton } from '../components/ShareButton';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../hooks/useAuth';
 import './PredictionPage.css';
@@ -353,6 +354,13 @@ export const PredictionPage = () => {
     setShowPredictionModal(true);
   };
 
+  // Handle timeline visibility change
+  const handleTimelineVisibilityChange = (isPublic: boolean) => {
+    if (timeline) {
+      setTimeline({ ...timeline, isPublic });
+    }
+  };
+
   // Show saved timelines when no slug and no active timeline
   const showSavedTimelines = !slug && !timeline && user;
 
@@ -362,18 +370,21 @@ export const PredictionPage = () => {
         <div className="hero-section">
           <h2 className="hero-title">Past-Present-Prediction Analysis</h2>
           <p className="hero-subtitle">
-            AI-powered timeline analysis with historical data, current state, and future predictions
+            AI-powered predictions with historical data, current state, and future scenarios
           </p>
           {!user && (
-            <p className="hero-auth-hint">Sign in to generate timeline analyses</p>
+            <p className="hero-auth-hint">Sign in to generate AI predictions</p>
           )}
 
           <div className="search-section">
             <SearchBar
               onSearch={handleSearch}
               loading={loading}
-              buttonText="Generate Timeline"
+              buttonText="Generate AI Prediction"
               loadingText="Analyzing..."
+              disabled={!user}
+              disabledMessage="Sign in to generate AI predictions"
+              onDisabledClick={() => setShowAuthModal(true)}
             />
           </div>
 
@@ -383,14 +394,14 @@ export const PredictionPage = () => {
         {showSavedTimelines && (
           <div className="saved-timelines-section">
             <div className="section-header">
-              <h2>My Saved Timelines</h2>
-              <p className="section-subtitle">Your saved timeline analyses</p>
+              <h2>My AI Predictions</h2>
+              <p className="section-subtitle">Your saved AI predictions</p>
             </div>
 
             {loadingTimelines ? (
               <div className="loading-state">
                 <div className="spinner"></div>
-                <p>Loading saved timelines...</p>
+                <p>Loading saved AI predictions...</p>
               </div>
             ) : savedTimelines.length > 0 ? (
               <div className="timelines-grid">
@@ -420,8 +431,8 @@ export const PredictionPage = () => {
             ) : (
               <div className="empty-state">
                 <div className="empty-icon">📈</div>
-                <h3>No saved timelines yet</h3>
-                <p>Generate your first timeline analysis to see it here</p>
+                <h3>No saved AI predictions yet</h3>
+                <p>Generate your first AI prediction to see it here</p>
               </div>
             )}
           </div>
@@ -430,7 +441,7 @@ export const PredictionPage = () => {
         {loading && !timeline && (
           <div className="loading-container">
             <div className="spinner"></div>
-            <p>Researching topic and generating timeline analysis...</p>
+            <p>Researching topic and generating AI prediction...</p>
             <p className="loading-hint">This may take 30-60 seconds</p>
           </div>
         )}
@@ -446,6 +457,14 @@ export const PredictionPage = () => {
                 )}
               </div>
               <div className="timeline-actions">
+                {slug && (
+                  <ShareButton
+                    url={`/timeline/${slug}`}
+                    slug={slug}
+                    timeline={timeline}
+                    onVisibilityChange={handleTimelineVisibilityChange}
+                  />
+                )}
                 {slug && user && timeline.userId === user.uid && (
                   <>
                     {reprocessedData ? (
@@ -497,7 +516,7 @@ export const PredictionPage = () => {
                 )}
                 {!slug && (
                   <button className="btn-primary" onClick={handleSaveTimeline}>
-                    Save Timeline
+                    Save AI Prediction
                   </button>
                 )}
               </div>

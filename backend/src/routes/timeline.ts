@@ -97,44 +97,27 @@ router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) 
 });
 
 /**
- * GET /api/timeline/:slug
- * Retrieve a timeline by slug (public, optional auth)
- * Supports optional ?version= query parameter to get specific version
+ * GET /api/timeline/popular
+ * Get popular timelines based on view count
  */
-router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
+router.get('/popular', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { slug } = req.params;
-    const version = req.query.version ? parseInt(req.query.version as string, 10) : undefined;
+    const { limit, days } = req.query;
 
-    if (!slug) {
-      res.status(400).json({ error: 'Slug is required' });
-      return;
-    }
+    const searchLimit = limit ? Math.floor(Number(limit)) || 20 : 20;
+    const searchDays = days ? Math.floor(Number(days)) || 30 : 30;
 
-    console.log(`[API] Timeline retrieval request for slug: "${slug}"${version ? `, version: ${version}` : ' (latest)'}`);
-    const timeline = await timelineService.getTimelineBySlug(slug, version);
-
-    if (!timeline) {
-      console.log(`[API] Timeline not found for slug: "${slug}"${version ? `, version: ${version}` : ''}`);
-      res.status(404).json({ error: 'Timeline not found' });
-      return;
-    }
-
-    // Check if timeline is public or belongs to the requesting user
-    if (!timeline.isPublic && (!req.user || req.user.uid !== timeline.userId)) {
-      res.status(403).json({ error: 'Access denied to private timeline' });
-      return;
-    }
+    const timelines = await timelineService.getPopularTimelines(searchLimit, searchDays);
 
     res.json({
       success: true,
-      timeline,
+      timelines,
     });
   } catch (error) {
-    console.error('Error retrieving timeline:', error);
-    res.status(500).json({
-      error: 'Failed to retrieve timeline',
-      details: error instanceof Error ? error.message : 'Unknown error',
+    console.error('Error getting popular timelines:', error);
+    res.status(500).json({ 
+      error: 'Failed to get popular timelines',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
@@ -173,6 +156,49 @@ router.get('/topic/:topic', optionalAuth, async (req: AuthRequest, res: Response
     console.error('Error searching timelines:', error);
     res.status(500).json({
       error: 'Failed to search timelines',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /api/timeline/:slug
+ * Retrieve a timeline by slug (public, optional auth)
+ * Supports optional ?version= query parameter to get specific version
+ */
+router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { slug } = req.params;
+    const version = req.query.version ? parseInt(req.query.version as string, 10) : undefined;
+
+    if (!slug) {
+      res.status(400).json({ error: 'Slug is required' });
+      return;
+    }
+
+    console.log(`[API] Timeline retrieval request for slug: "${slug}"${version ? `, version: ${version}` : ' (latest)'}`);
+    const timeline = await timelineService.getTimelineBySlug(slug, version);
+
+    if (!timeline) {
+      console.log(`[API] Timeline not found for slug: "${slug}"${version ? `, version: ${version}` : ''}`);
+      res.status(404).json({ error: 'Timeline not found' });
+      return;
+    }
+
+    // Check if timeline is public or belongs to the requesting user
+    if (!timeline.isPublic && (!req.user || req.user.uid !== timeline.userId)) {
+      res.status(403).json({ error: 'Access denied to private timeline' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      timeline,
+    });
+  } catch (error) {
+    console.error('Error retrieving timeline:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve timeline',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }

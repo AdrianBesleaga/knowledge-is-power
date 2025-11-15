@@ -192,6 +192,16 @@ export const saveTimeline = async (
 };
 
 
+export const getPopularTimelines = async (
+  limit: number = 20,
+  days: number = 30
+): Promise<{ success: boolean; timelines: TimelineAnalysis[] }> => {
+  const response = await api.get('/api/timeline/popular', {
+    params: { limit, days },
+  });
+  return response.data;
+};
+
 export const getTimelineByTopic = async (
   topic: string,
   limit: number = 20,

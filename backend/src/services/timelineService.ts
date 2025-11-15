@@ -4,11 +4,13 @@ import { generateSlug } from '../utils/slugify';
 import { ObjectId } from 'mongodb';
 
 export class TimelineService {
-  private readonly COLLECTION_NAME = 'timelines';
-  private readonly VERSIONS_COLLECTION_NAME = 'timeline_versions';
+  // Use only timeline_versions collection - single source of truth
+  // Each document represents a version, latest version has highest version number
+  private readonly COLLECTION_NAME = 'timeline_versions';
 
   /**
    * Save a timeline analysis to MongoDB
+   * Creates version 1 if new, or updates existing timeline (replaces latest version)
    */
   async saveTimeline(
     topic: string,
@@ -26,9 +28,24 @@ export class TimelineService {
     const now = new Date();
 
     // Check if timeline with this slug already exists
-    const existing = await collection.findOne({ slug });
-    if (existing) {
-      // Update existing timeline
+    const latestVersion = await collection.findOne(
+      { slug },
+      { sort: { version: -1 } }
+    );
+
+    let version = 1;
+    let viewCount = 0;
+    let createdAt = now;
+
+    if (latestVersion) {
+      // Use existing version number and preserve viewCount and createdAt
+      version = latestVersion.version;
+      viewCount = latestVersion.viewCount || 0;
+      createdAt = latestVersion.createdAt instanceof Date 
+        ? latestVersion.createdAt 
+        : new Date(latestVersion.createdAt);
+      
+      // Update existing version (replace it)
       const updated = {
         topic,
         valueLabel,
@@ -44,14 +61,17 @@ export class TimelineService {
         updatedAt: now,
         userId,
         isPublic,
+        viewCount,
+        createdAt,
+        version,
       };
 
       await collection.updateOne(
-        { slug },
+        { slug, version },
         { $set: updated }
       );
 
-      const result = await collection.findOne({ slug });
+      const result = await collection.findOne({ slug, version });
       return this.mapToTimelineAnalysis(result!);
     }
 
@@ -70,22 +90,15 @@ export class TimelineService {
         date: presentEntry.date instanceof Date ? presentEntry.date : new Date(presentEntry.date),
       },
       predictions,
-      createdAt: now,
+      createdAt,
       updatedAt: now,
       userId,
       isPublic,
-      viewCount: 0,
-      version: 1,
+      viewCount,
+      version,
     };
 
     await collection.insertOne(timelineDoc);
-
-    // Also save as version 1 in versions collection
-    const versionsCollection = db.collection(this.VERSIONS_COLLECTION_NAME);
-    await versionsCollection.insertOne({
-      ...timelineDoc,
-      version: 1,
-    });
 
     return this.mapToTimelineAnalysis(timelineDoc);
   }
@@ -97,32 +110,31 @@ export class TimelineService {
     const db = await getMongoDB();
     const collection = db.collection(this.COLLECTION_NAME);
 
-    // If specific version requested, get from versions collection
+    let result;
+    
     if (version !== undefined) {
-      const versionsCollection = db.collection(this.VERSIONS_COLLECTION_NAME);
-      const versionDoc = await versionsCollection.findOne({ slug, version });
-      if (versionDoc) {
-        // Increment view count on main timeline
-        await collection.updateOne(
-          { slug },
-          { $inc: { viewCount: 1 } }
-        );
-        return this.mapToTimelineAnalysis(versionDoc);
-      }
-      return null;
+      // Get specific version
+      result = await collection.findOne({ slug, version });
+    } else {
+      // Get latest version
+      result = await collection.findOne(
+        { slug },
+        { sort: { version: -1 } }
+      );
     }
 
-    // Get latest version from main collection
-    // Increment view count
-    await collection.updateOne(
-      { slug },
-      { $inc: { viewCount: 1 } }
-    );
-
-    const result = await collection.findOne({ slug });
     if (!result) {
       return null;
     }
+
+    // Increment view count (on the version we're viewing)
+    await collection.updateOne(
+      { slug, version: result.version },
+      { $inc: { viewCount: 1 } }
+    );
+
+    // Update viewCount in result for return value
+    result.viewCount = (result.viewCount || 0) + 1;
 
     return this.mapToTimelineAnalysis(result);
   }
@@ -132,9 +144,9 @@ export class TimelineService {
    */
   async getTimelineVersions(slug: string): Promise<Array<{ version: number; createdAt: Date; presentValue: number }>> {
     const db = await getMongoDB();
-    const versionsCollection = db.collection(this.VERSIONS_COLLECTION_NAME);
+    const collection = db.collection(this.COLLECTION_NAME);
 
-    const versions = await versionsCollection
+    const versions = await collection
       .find({ slug })
       .sort({ version: -1 })
       .toArray();
@@ -161,16 +173,26 @@ export class TimelineService {
   ): Promise<{ version: number; timeline: TimelineAnalysis }> {
     const db = await getMongoDB();
     const collection = db.collection(this.COLLECTION_NAME);
-    const versionsCollection = db.collection(this.VERSIONS_COLLECTION_NAME);
 
     // Get current max version for this slug
-    const maxVersionDoc = await versionsCollection
+    const maxVersionDoc = await collection
       .findOne({ slug }, { sort: { version: -1 } });
     
     const newVersion = maxVersionDoc ? maxVersionDoc.version + 1 : 1;
     const now = new Date();
 
-    // Create version document
+    // Get original createdAt from first version
+    const firstVersion = await collection.findOne(
+      { slug },
+      { sort: { version: 1 } }
+    );
+    const createdAt = firstVersion?.createdAt instanceof Date
+      ? firstVersion.createdAt
+      : firstVersion?.createdAt
+        ? new Date(firstVersion.createdAt)
+        : now;
+
+    // Create new version document
     const versionDoc = {
       id: new ObjectId().toString(),
       slug,
@@ -186,46 +208,22 @@ export class TimelineService {
         date: presentEntry.date instanceof Date ? presentEntry.date : new Date(presentEntry.date),
       },
       predictions,
-      createdAt: now,
+      createdAt, // Preserve original creation date
       updatedAt: now,
       userId,
       isPublic,
-      viewCount: 0,
+      viewCount: 0, // New version starts with 0 views
     };
 
-    await versionsCollection.insertOne(versionDoc);
+    await collection.insertOne(versionDoc);
 
-    // Update main timeline with latest version
-    const updated = {
-      topic,
-      valueLabel,
-      pastEntries: pastEntries.map(e => ({
-        ...e,
-        date: e.date instanceof Date ? e.date : new Date(e.date),
-      })),
-      presentEntry: {
-        ...presentEntry,
-        date: presentEntry.date instanceof Date ? presentEntry.date : new Date(presentEntry.date),
-      },
-      predictions,
-      updatedAt: now,
-      userId,
-      isPublic,
-      version: newVersion,
-    };
-
-    await collection.updateOne(
-      { slug },
-      { $set: updated },
-      { upsert: true }
-    );
-
-    const timeline = this.mapToTimelineAnalysis({ ...versionDoc, version: newVersion });
+    const timeline = this.mapToTimelineAnalysis(versionDoc);
     return { version: newVersion, timeline };
   }
 
   /**
    * Search timelines by topic
+   * Returns only the latest version of each timeline (deduplicated by slug)
    */
   async searchTimelinesByTopic(
     topic: string,
@@ -242,14 +240,57 @@ export class TimelineService {
       ],
     };
 
-    const total = await collection.countDocuments(query);
+    // Use aggregation to group by slug and get the latest version
+    const pipeline = [
+      { $match: query },
+      {
+        $sort: { 
+          slug: 1,
+          version: -1, // Sort by version descending to get latest first
+          updatedAt: -1 // Then by updatedAt as tiebreaker
+        }
+      },
+      {
+        $group: {
+          _id: '$slug',
+          doc: { $first: '$$ROOT' } // Get the first (latest) document for each slug
+        }
+      },
+      {
+        $replaceRoot: { newRoot: '$doc' } // Replace root with the document
+      },
+      {
+        $sort: { updatedAt: -1 } // Sort final results by updatedAt
+      },
+      { $skip: offset },
+      { $limit: limit }
+    ];
 
-    const results = await collection
-      .find(query)
-      .sort({ createdAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .toArray();
+    const results = await collection.aggregate(pipeline).toArray();
+
+    // Get total count of unique slugs
+    const totalPipeline = [
+      { $match: query },
+      {
+        $sort: { 
+          slug: 1,
+          version: -1,
+          updatedAt: -1
+        }
+      },
+      {
+        $group: {
+          _id: '$slug',
+          doc: { $first: '$$ROOT' }
+        }
+      },
+      {
+        $count: 'total'
+      }
+    ];
+
+    const totalResult = await collection.aggregate(totalPipeline).toArray();
+    const total = totalResult[0]?.total || 0;
 
     const timelines = results.map(doc => this.mapToTimelineAnalysis(doc));
 
@@ -258,21 +299,44 @@ export class TimelineService {
 
   /**
    * Get all timelines for a user
+   * Returns only the latest version of each timeline (deduplicated by slug)
    */
   async getUserTimelines(userId: string): Promise<TimelineAnalysis[]> {
     const db = await getMongoDB();
     const collection = db.collection(this.COLLECTION_NAME);
 
-    const results = await collection
-      .find({ userId })
-      .sort({ createdAt: -1 })
-      .toArray();
+    // Use aggregation to group by slug and get the latest version
+    const pipeline = [
+      { $match: { userId } },
+      {
+        $sort: { 
+          slug: 1,
+          version: -1, // Sort by version descending to get latest first
+          updatedAt: -1 // Then by updatedAt as tiebreaker
+        }
+      },
+      {
+        $group: {
+          _id: '$slug',
+          doc: { $first: '$$ROOT' } // Get the first (latest) document for each slug
+        }
+      },
+      {
+        $replaceRoot: { newRoot: '$doc' } // Replace root with the document
+      },
+      {
+        $sort: { updatedAt: -1 } // Sort final results by updatedAt
+      }
+    ];
+
+    const results = await collection.aggregate(pipeline).toArray();
 
     return results.map(doc => this.mapToTimelineAnalysis(doc));
   }
 
   /**
    * Update timeline visibility
+   * Updates all versions of the timeline to maintain consistency
    */
   async updateTimelineVisibility(
     slug: string,
@@ -282,19 +346,79 @@ export class TimelineService {
     const db = await getMongoDB();
     const collection = db.collection(this.COLLECTION_NAME);
 
-    // Verify ownership
-    const existing = await collection.findOne({ slug, userId });
-    if (!existing) {
+    // Verify ownership by checking latest version
+    const latestVersion = await collection.findOne(
+      { slug, userId },
+      { sort: { version: -1 } }
+    );
+    
+    if (!latestVersion) {
       return null;
     }
 
-    await collection.updateOne(
+    // Update all versions to maintain consistency
+    await collection.updateMany(
       { slug, userId },
       { $set: { isPublic, updatedAt: new Date() } }
     );
 
-    const result = await collection.findOne({ slug });
+    // Return the latest version
+    const result = await collection.findOne(
+      { slug },
+      { sort: { version: -1 } }
+    );
     return result ? this.mapToTimelineAnalysis(result) : null;
+  }
+
+  /**
+   * Get popular timelines based on view count
+   * Returns only the latest version of each timeline (deduplicated by slug)
+   */
+  async getPopularTimelines(
+    limit: number = 20,
+    days: number = 30
+  ): Promise<TimelineAnalysis[]> {
+    const db = await getMongoDB();
+    const collection = db.collection(this.COLLECTION_NAME);
+
+    // Use aggregation to get latest version of each timeline, filtered by public status
+    // Note: We don't filter by date since timelines are a newer feature and there may be fewer of them
+    const pipeline = [
+      {
+        $match: {
+          isPublic: true
+        }
+      },
+      {
+        $sort: { 
+          slug: 1,
+          version: -1, // Sort by version descending to get latest first
+          updatedAt: -1
+        }
+      },
+      {
+        $group: {
+          _id: '$slug',
+          doc: { $first: '$$ROOT' } // Get the first (latest) document for each slug
+        }
+      },
+      {
+        $replaceRoot: { newRoot: '$doc' } // Replace root with the document
+      },
+      {
+        $addFields: {
+          viewCount: { $ifNull: ['$viewCount', 0] } // Ensure viewCount is never null
+        }
+      },
+      {
+        $sort: { viewCount: -1, updatedAt: -1 } // Sort by view count, then by updatedAt
+      },
+      { $limit: limit }
+    ];
+
+    const results = await collection.aggregate(pipeline).toArray();
+
+    return results.map(doc => this.mapToTimelineAnalysis(doc));
   }
 
   /**

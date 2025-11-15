@@ -30,7 +30,7 @@ export const Header = () => {
                 className="btn-secondary"
                 onClick={() => navigate('/timeline')}
               >
-                Timeline
+                AI Predictions
               </button>
               <button
                 className="btn-secondary"

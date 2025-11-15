@@ -22,7 +22,7 @@ if (!process.env.OPENAI_API_KEY) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Middleware
@@ -109,9 +109,11 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 });
 
 // Start server
-const server = app.listen(PORT, () => {
+// Bind to 0.0.0.0 to accept connections from all network interfaces (required for fly.io, Railway, etc.)
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Frontend URL: ${FRONTEND_URL}`);
+  console.log(`🌐 Listening on 0.0.0.0:${PORT}`);
 });
 
 // Graceful shutdown

@@ -3,9 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
 import { generateTimeline, saveTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions } from '../services/api';
 import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
-import { TimelineSlider } from '../components/TimelineSlider';
 import { TimelineChart } from '../components/TimelineChart';
-import { PredictionCard } from '../components/PredictionCard';
+import { PredictionModal } from '../components/PredictionModal';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../hooks/useAuth';
 import './PredictionPage.css';
@@ -18,7 +17,6 @@ export const PredictionPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [topic, setTopic] = useState('');
   const [timeline, setTimeline] = useState<TimelineAnalysis | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('present');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingTopic, setPendingTopic] = useState<string | null>(null);
   const [reprocessing, setReprocessing] = useState(false);
@@ -29,6 +27,8 @@ export const PredictionPage = () => {
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [savingVersion, setSavingVersion] = useState(false);
+  const [showPredictionModal, setShowPredictionModal] = useState(false);
+  const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
 
   // Load saved timelines when no slug and user is logged in
   useEffect(() => {
@@ -97,7 +97,6 @@ export const PredictionPage = () => {
         // Clear timeline state when navigating back to /timeline without slug
         setTimeline(null);
         setTopic('');
-        setSelectedPeriod('present');
         setReprocessedData(null);
         return;
       }
@@ -118,7 +117,6 @@ export const PredictionPage = () => {
         const loadedTimeline = await getTimelineBySlug(slug, versionToLoad);
         setTimeline(loadedTimeline);
         setTopic(loadedTimeline.topic);
-        setSelectedPeriod('present');
         setReprocessedData(null); // Clear any reprocessed data when loading a timeline
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load timeline');
@@ -163,7 +161,6 @@ export const PredictionPage = () => {
             isPublic: false,
             viewCount: 0,
           });
-          setSelectedPeriod('present');
         } catch (err: any) {
           if (err.response?.status === 401) {
             setError('Please sign in to generate timelines');
@@ -312,7 +309,6 @@ export const PredictionPage = () => {
       setTimeline(result.timeline);
       setReprocessedData(null);
       setSelectedVersion(result.version);
-      setSelectedPeriod('present');
 
       // Reload versions
       const versionsResult = await getTimelineVersions(slug);
@@ -342,7 +338,6 @@ export const PredictionPage = () => {
 
       const loadedTimeline = await getTimelineBySlug(slug, version);
       setTimeline(loadedTimeline);
-      setSelectedPeriod('present');
       setReprocessedData(null);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load version');
@@ -352,38 +347,11 @@ export const PredictionPage = () => {
     }
   };
 
-  const getCurrentPeriodData = (): TimelineEntry | Prediction | null => {
-    if (!timeline) return null;
-
-    // Use reprocessed data if available, otherwise use timeline data
-    const currentPresentEntry = reprocessedData?.presentEntry || timeline.presentEntry;
-    const currentPredictions = reprocessedData?.predictions || timeline.predictions;
-
-    if (selectedPeriod === 'present') {
-      return currentPresentEntry;
-    }
-
-    // Check if it's a past entry
-    const pastIndex = timeline.pastEntries.findIndex(
-      (entry, idx) => `past-${idx}` === selectedPeriod
-    );
-    if (pastIndex !== -1) {
-      return timeline.pastEntries[pastIndex];
-    }
-
-    // Check if it's a prediction
-    const prediction = currentPredictions.find(
-      (pred) => pred.timeline === selectedPeriod
-    );
-    if (prediction) {
-      return prediction;
-    }
-
-    return null;
+  // Handle prediction click to show modal
+  const handlePredictionClick = (prediction: Prediction) => {
+    setSelectedPrediction(prediction);
+    setShowPredictionModal(true);
   };
-
-  const currentData = getCurrentPeriodData();
-  const isPrediction = currentData && 'scenarios' in currentData;
 
   // Show saved timelines when no slug and no active timeline
   const showSavedTimelines = !slug && !timeline && user;
@@ -541,57 +509,8 @@ export const PredictionPage = () => {
                 presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
                 predictions={reprocessedData?.predictions || timeline.predictions}
                 valueLabel={timeline.valueLabel}
+                onPredictionClick={handlePredictionClick}
               />
-            </div>
-
-            <div className="timeline-slider-container">
-              <TimelineSlider
-                pastEntries={timeline.pastEntries}
-                presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
-                predictions={reprocessedData?.predictions || timeline.predictions}
-                selectedPeriod={selectedPeriod}
-                onPeriodChange={setSelectedPeriod}
-              />
-            </div>
-
-            <div className="period-details">
-              {isPrediction && currentData && 'scenarios' in currentData ? (
-                <div className="predictions-container">
-                  <h4>Predictions for {currentData.timeline}</h4>
-                  <div className="prediction-scenarios">
-                    {currentData.scenarios.map((scenario) => (
-                      <PredictionCard key={scenario.id} scenario={scenario} />
-                    ))}
-                  </div>
-                </div>
-              ) : currentData && 'date' in currentData ? (
-                <div className="entry-details">
-                  <h4>
-                    {selectedPeriod === 'present'
-                      ? 'Current State'
-                      : new Date(currentData.date).toLocaleDateString()}
-                  </h4>
-                  <div className="entry-value">
-                    <span className="value">{currentData.value}</span>
-                    <span className="value-unit">{currentData.valueLabel}</span>
-                  </div>
-                  <p className="entry-summary">{currentData.summary}</p>
-                  {currentData.sources.length > 0 && (
-                    <div className="entry-sources">
-                      <h5>Sources:</h5>
-                      <ul>
-                        {currentData.sources.map((source, idx) => (
-                          <li key={idx}>
-                            <a href={source} target="_blank" rel="noopener noreferrer">
-                              {source}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ) : null}
             </div>
           </div>
         )}
@@ -607,6 +526,18 @@ export const PredictionPage = () => {
           setShowAuthModal(false);
         }}
       />
+
+      {timeline && (
+        <PredictionModal
+          isOpen={showPredictionModal}
+          onClose={() => {
+            setShowPredictionModal(false);
+            setSelectedPrediction(null);
+          }}
+          prediction={selectedPrediction}
+          valueLabel={timeline.valueLabel}
+        />
+      )}
     </div>
   );
 };

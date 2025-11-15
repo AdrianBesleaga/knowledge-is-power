@@ -82,6 +82,8 @@ This guide covers deploying your Knowledge is Power application to production.
    - Root Directory: `frontend`
    - Build Command: `npm run build`
    - Output Directory: `dist`
+   
+   Note: The `vercel.json` file in the frontend directory is already configured to handle SPA routing (direct links to routes like `/timeline/:slug` will work correctly).
 
 4. **Environment Variables**
    Add these variables:

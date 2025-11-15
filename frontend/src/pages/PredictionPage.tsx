@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
-import { generateTimeline, saveTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions } from '../services/api';
+import { generateTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions } from '../services/api';
 import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
 import { TimelineChart } from '../components/TimelineChart';
 import { PredictionModal } from '../components/PredictionModal';
@@ -144,8 +144,8 @@ export const PredictionPage = () => {
           }
 
           const result = await generateTimeline(topic);
-          // Timeline is now automatically saved, use the saved timeline from the response
-          setTimeline(result.timeline);
+          // Timeline is now automatically saved, navigate to the timeline URL to show share button
+          navigate(result.url);
         } catch (err: any) {
           if (err.response?.status === 401) {
             setError('Please sign in to generate timelines');
@@ -179,8 +179,8 @@ export const PredictionPage = () => {
       }
 
       const result = await generateTimeline(searchTopic);
-      // Timeline is now automatically saved, use the saved timeline from the response
-      setTimeline(result.timeline);
+      // Timeline is now automatically saved, navigate to the timeline URL to show share button
+      navigate(result.url);
     } catch (err: any) {
       if (err.response?.status === 401) {
         setError('Please sign in to generate timelines');
@@ -194,32 +194,6 @@ export const PredictionPage = () => {
     }
   };
 
-  const handleSaveTimeline = async () => {
-    if (!user || !timeline) {
-      return;
-    }
-
-    try {
-      const token = await getIdToken();
-      if (token) {
-        setAuthToken(token);
-      }
-
-      const result = await saveTimeline(
-        timeline.topic,
-        timeline.valueLabel,
-        timeline.pastEntries,
-        timeline.presentEntry,
-        timeline.predictions,
-        false
-      );
-
-      navigate(`/timeline/${result.timeline.slug}`);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to save timeline');
-      console.error('Error saving timeline:', err);
-    }
-  };
 
   const handleReprocess = async () => {
     if (!user || !timeline || !slug) {
@@ -483,11 +457,6 @@ export const PredictionPage = () => {
                       </select>
                     )}
                   </>
-                )}
-                {!slug && (
-                  <button className="btn-primary" onClick={handleSaveTimeline}>
-                    Save AI Prediction
-                  </button>
                 )}
               </div>
             </div>

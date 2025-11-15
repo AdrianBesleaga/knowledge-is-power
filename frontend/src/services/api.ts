@@ -284,3 +284,8 @@ export const getTimelineBySlug = async (slug: string, version?: number): Promise
   return response.data.timeline;
 };
 
+export const deleteTimeline = async (slug: string): Promise<{ success: boolean; message: string }> => {
+  const response = await api.delete(`/api/timeline/${slug}`);
+  return response.data;
+};
+

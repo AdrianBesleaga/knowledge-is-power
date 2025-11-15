@@ -433,6 +433,30 @@ export class TimelineService {
   }
 
   /**
+   * Delete a timeline (all versions)
+   * Only the owner can delete their timeline
+   */
+  async deleteTimeline(slug: string, userId: string): Promise<boolean> {
+    const db = await getMongoDB();
+    const collection = db.collection(this.COLLECTION_NAME);
+
+    // Verify ownership by checking if any version exists with this userId
+    const existingTimeline = await collection.findOne(
+      { slug, userId },
+      { sort: { version: -1 } }
+    );
+
+    if (!existingTimeline) {
+      return false; // Timeline doesn't exist or user doesn't own it
+    }
+
+    // Delete all versions of the timeline
+    const result = await collection.deleteMany({ slug, userId });
+
+    return result.deletedCount > 0;
+  }
+
+  /**
    * Map MongoDB document to TimelineAnalysis
    */
   private mapToTimelineAnalysis(doc: any): TimelineAnalysis {

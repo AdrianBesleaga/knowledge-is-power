@@ -446,5 +446,67 @@ router.get('/:slug/versions', authenticateToken, async (req: AuthRequest, res: R
   }
 });
 
+/**
+ * DELETE /api/timeline/:slug
+ * Delete a timeline (all versions) - requires authentication, owner only, private timelines only
+ */
+router.delete('/:slug', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug) {
+      res.status(400).json({ error: 'Slug is required' });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    console.log(`[API] Timeline deletion request for slug: "${slug}" by user: ${req.user.uid}`);
+
+    // Get existing timeline to check ownership and visibility
+    const existingTimeline = await timelineService.getTimelineBySlug(slug);
+    if (!existingTimeline) {
+      res.status(404).json({ error: 'Timeline not found' });
+      return;
+    }
+
+    // Check ownership
+    if (existingTimeline.userId !== req.user.uid) {
+      res.status(403).json({ error: 'Access denied. You can only delete your own timelines.' });
+      return;
+    }
+
+    // Only allow deletion of private timelines
+    if (existingTimeline.isPublic) {
+      res.status(400).json({ error: 'Cannot delete public timelines. Make it private first.' });
+      return;
+    }
+
+    // Delete the timeline (all versions)
+    const deleted = await timelineService.deleteTimeline(slug, req.user.uid);
+
+    if (!deleted) {
+      res.status(404).json({ error: 'Timeline not found or could not be deleted' });
+      return;
+    }
+
+    console.log(`[API] Timeline deleted successfully: "${slug}"`);
+
+    res.json({
+      success: true,
+      message: 'Timeline deleted successfully',
+    });
+  } catch (error) {
+    console.error('[API] Error deleting timeline:', error);
+    res.status(500).json({
+      error: 'Failed to delete timeline',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 export default router;
 

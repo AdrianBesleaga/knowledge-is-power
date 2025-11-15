@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
-import { generateTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions } from '../services/api';
+import { generateTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions, deleteTimeline } from '../services/api';
 import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
 import { TimelineChart } from '../components/TimelineChart';
 import { PredictionModal } from '../components/PredictionModal';
@@ -29,6 +29,8 @@ export const PredictionPage = () => {
   const [savingVersion, setSavingVersion] = useState(false);
   const [showPredictionModal, setShowPredictionModal] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Load saved timelines when no slug and user is logged in
   useEffect(() => {
@@ -305,6 +307,34 @@ export const PredictionPage = () => {
     }
   };
 
+  // Handle timeline deletion
+  const handleDeleteTimeline = async () => {
+    if (!user || !timeline || !slug || timeline.isPublic) {
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+
+    try {
+      const token = await getIdToken();
+      if (token) {
+        setAuthToken(token);
+      }
+
+      await deleteTimeline(slug);
+      
+      // Navigate back to timeline list after successful deletion
+      navigate('/timeline');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to delete timeline');
+      console.error('Error deleting timeline:', err);
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   // Show saved timelines when no slug and no active timeline
   const showSavedTimelines = !slug && !timeline && user;
 
@@ -456,6 +486,16 @@ export const PredictionPage = () => {
                         ))}
                       </select>
                     )}
+                    {!timeline.isPublic && (
+                      <button 
+                        className="btn-danger" 
+                        onClick={() => setShowDeleteConfirm(true)}
+                        disabled={deleting}
+                        title="Delete this private timeline"
+                      >
+                        🗑️ Delete
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -495,6 +535,38 @@ export const PredictionPage = () => {
           prediction={selectedPrediction}
           valueLabel={timeline.valueLabel}
         />
+      )}
+
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Delete Timeline</h3>
+            <p>Are you sure you want to delete "{timeline?.topic}"? This action cannot be undone.</p>
+            <div className="modal-actions">
+              <button 
+                className="btn-secondary" 
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-danger" 
+                onClick={handleDeleteTimeline}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <>
+                    <div className="button-spinner-small"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

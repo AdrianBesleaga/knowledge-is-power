@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
-import { generateTimeline, saveTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline } from '../services/api';
+import { generateTimeline, saveTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines } from '../services/api';
 import { TimelineAnalysis, TimelineEntry, Prediction } from '../types/timeline';
 import { TimelineSlider } from '../components/TimelineSlider';
 import { TimelineChart } from '../components/TimelineChart';
@@ -22,11 +22,44 @@ export const PredictionPage = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingTopic, setPendingTopic] = useState<string | null>(null);
   const [reprocessing, setReprocessing] = useState(false);
+  const [savedTimelines, setSavedTimelines] = useState<TimelineAnalysis[]>([]);
+  const [loadingTimelines, setLoadingTimelines] = useState(false);
+
+  // Load saved timelines when no slug and user is logged in
+  useEffect(() => {
+    const loadSavedTimelines = async () => {
+      if (slug || !user) return;
+
+      try {
+        setLoadingTimelines(true);
+        const token = await getIdToken();
+        if (token) {
+          setAuthToken(token);
+        }
+
+        const timelines = await getUserTimelines();
+        setSavedTimelines(timelines);
+      } catch (err: any) {
+        console.error('Error loading saved timelines:', err);
+        // Don't show error for this, just log it
+      } finally {
+        setLoadingTimelines(false);
+      }
+    };
+
+    loadSavedTimelines();
+  }, [slug, user, getIdToken]);
 
   // Load timeline by slug if provided
   useEffect(() => {
     const loadTimeline = async () => {
-      if (!slug) return;
+      if (!slug) {
+        // Clear timeline state when navigating back to /timeline without slug
+        setTimeline(null);
+        setTopic('');
+        setSelectedPeriod('present');
+        return;
+      }
 
       try {
         setLoading(true);
@@ -238,6 +271,9 @@ export const PredictionPage = () => {
   const currentData = getCurrentPeriodData();
   const isPrediction = currentData && 'scenarios' in currentData;
 
+  // Show saved timelines when no slug and no active timeline
+  const showSavedTimelines = !slug && !timeline && user;
+
   return (
     <div className="prediction-page">
       <main className="prediction-main">
@@ -261,6 +297,53 @@ export const PredictionPage = () => {
 
           {error && <div className="error-banner">{error}</div>}
         </div>
+
+        {showSavedTimelines && (
+          <div className="saved-timelines-section">
+            <div className="section-header">
+              <h2>My Saved Timelines</h2>
+              <p className="section-subtitle">Your saved timeline analyses</p>
+            </div>
+
+            {loadingTimelines ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading saved timelines...</p>
+              </div>
+            ) : savedTimelines.length > 0 ? (
+              <div className="timelines-grid">
+                {savedTimelines.map((savedTimeline) => (
+                  <div
+                    key={savedTimeline.id}
+                    className="timeline-card"
+                    onClick={() => navigate(`/timeline/${savedTimeline.slug}`)}
+                  >
+                    <h3>{savedTimeline.topic}</h3>
+                    <p className="timeline-card-value-label">Tracking: {savedTimeline.valueLabel}</p>
+                    <div className="timeline-card-meta">
+                      <span className="date">
+                        {new Date(savedTimeline.createdAt).toLocaleDateString()}
+                      </span>
+                      <span>•</span>
+                      <span className="views">{savedTimeline.viewCount} views</span>
+                    </div>
+                    <div className="timeline-card-footer">
+                      <span className={`visibility-badge ${savedTimeline.isPublic ? 'public' : 'private'}`}>
+                        {savedTimeline.isPublic ? '🌐 Public' : '🔒 Private'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">📈</div>
+                <h3>No saved timelines yet</h3>
+                <p>Generate your first timeline analysis to see it here</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {loading && !timeline && (
           <div className="loading-container">

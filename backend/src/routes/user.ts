@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { graphService } from '../services/graphService';
+import { timelineService } from '../services/timelineService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -25,6 +26,32 @@ router.get('/graphs', authenticateToken, async (req: AuthRequest, res: Response)
     console.error('Error retrieving user graphs:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve user graphs',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/user/timelines
+ * Get all timelines for the authenticated user
+ */
+router.get('/timelines', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const timelines = await timelineService.getUserTimelines(req.user.uid);
+
+    res.json({
+      success: true,
+      timelines,
+    });
+  } catch (error) {
+    console.error('Error retrieving user timelines:', error);
+    res.status(500).json({ 
+      error: 'Failed to retrieve user timelines',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

@@ -60,6 +60,11 @@ export const getUserGraphs = async (): Promise<KnowledgeGraph[]> => {
   return response.data.graphs;
 };
 
+export const getUserTimelines = async (): Promise<TimelineAnalysis[]> => {
+  const response = await api.get('/api/user/timelines');
+  return response.data.timelines;
+};
+
 export const getUserProfile = async (): Promise<{
   uid: string;
   email: string;

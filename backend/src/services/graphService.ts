@@ -140,6 +140,7 @@ export class GraphService {
       );
 
       if (graphResult.records.length === 0) {
+        console.log(`[GraphService] Graph not found for slug: "${slug}"`);
         return null;
       }
 
@@ -239,6 +240,9 @@ export class GraphService {
         isPublic: graphProps.isPublic,
         viewCount: viewCount + 1, // Include the increment we just did
       };
+    } catch (error) {
+      console.error(`[GraphService] Error retrieving graph by slug "${slug}":`, error);
+      throw error; // Re-throw to be handled by route handler
     } finally {
       await session.close();
     }

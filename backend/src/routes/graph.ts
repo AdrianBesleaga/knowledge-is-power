@@ -1,8 +1,9 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { aiService } from '../services/aiService';
 import { graphService } from '../services/graphService';
 import { authenticateToken, optionalAuth, AuthRequest } from '../middleware/auth';
 import { GenerateGraphRequest, SaveGraphRequest } from '../types';
+import { getNeo4jDriver } from '../config/neo4j';
 
 const router = Router();
 
@@ -90,6 +91,56 @@ router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) 
     res.status(500).json({ 
       error: 'Failed to save knowledge graph',
       details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/graph/debug/stats
+ * Debug endpoint to check database connection and get basic stats
+ */
+router.get('/debug/stats', async (req: Request, res: Response) => {
+  try {
+    const driver = getNeo4jDriver();
+    const session = driver.session();
+
+    try {
+      // Check connection and get graph count
+      const result = await session.run(
+        `
+        MATCH (g:Graph)
+        RETURN count(g) as totalGraphs
+        `
+      );
+
+      const totalGraphs = result.records[0]?.get('totalGraphs').toNumber() || 0;
+
+      // Get sample slugs
+      const sampleResult = await session.run(
+        `
+        MATCH (g:Graph)
+        RETURN g.slug as slug
+        LIMIT 5
+        `
+      );
+
+      const sampleSlugs = sampleResult.records.map(record => record.get('slug'));
+
+      res.json({
+        success: true,
+        connected: true,
+        totalGraphs,
+        sampleSlugs,
+      });
+    } finally {
+      await session.close();
+    }
+  } catch (error) {
+    console.error('[API] Debug stats error:', error);
+    res.status(500).json({
+      success: false,
+      connected: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -184,9 +235,11 @@ router.get('/:slug/related', optionalAuth, async (req: AuthRequest, res: Respons
       return;
     }
 
+    console.log(`[API] Related graphs request for slug: "${slug}"`);
     // First get the graph to find its ID
     const graph = await graphService.getGraphBySlug(slug);
     if (!graph) {
+      console.log(`[API] Graph not found for slug: "${slug}"`);
       res.status(404).json({ error: 'Knowledge graph not found' });
       return;
     }
@@ -333,9 +386,11 @@ router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    console.log(`[API] Graph retrieval request for slug: "${slug}"`);
     const graph = await graphService.getGraphBySlug(slug);
 
     if (!graph) {
+      console.log(`[API] Graph not found for slug: "${slug}"`);
       res.status(404).json({ error: 'Knowledge graph not found' });
       return;
     }

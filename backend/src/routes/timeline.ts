@@ -8,11 +8,11 @@ const router = Router();
 
 /**
  * POST /api/timeline/generate
- * Generate a timeline analysis for a topic (requires authentication)
+ * Generate a timeline analysis for a topic and automatically save it (requires authentication)
  */
 router.post('/generate', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { topic } = req.body as GenerateTimelineRequest;
+    const { topic, isPublic } = req.body as GenerateTimelineRequest & { isPublic?: boolean };
 
     if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
       res.status(400).json({ error: 'Topic is required' });
@@ -36,13 +36,29 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
 
     console.log(`[API] Timeline generation completed successfully: ${analysis.pastEntries.length} past entries, ${analysis.predictions.length} prediction intervals`);
 
+    // Automatically save the timeline
+    console.log(`[API] Automatically saving timeline for topic: "${topic.trim()}"`);
+    const savedTimeline = await timelineService.saveTimeline(
+      analysis.topic,
+      analysis.valueLabel,
+      analysis.pastEntries,
+      analysis.presentEntry,
+      analysis.predictions,
+      req.user.uid,
+      isPublic === true
+    );
+
+    console.log(`[API] Timeline saved successfully with slug: "${savedTimeline.slug}"`);
+
     res.json({
       success: true,
-      topic: analysis.topic,
-      valueLabel: analysis.valueLabel,
-      pastEntries: analysis.pastEntries,
-      presentEntry: analysis.presentEntry,
-      predictions: analysis.predictions,
+      topic: savedTimeline.topic,
+      valueLabel: savedTimeline.valueLabel,
+      pastEntries: savedTimeline.pastEntries,
+      presentEntry: savedTimeline.presentEntry,
+      predictions: savedTimeline.predictions,
+      timeline: savedTimeline,
+      url: `/timeline/${savedTimeline.slug}`,
     });
   } catch (error) {
     console.error('[API] Error generating timeline:', error);

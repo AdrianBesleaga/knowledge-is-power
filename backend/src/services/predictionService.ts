@@ -1,9 +1,53 @@
 import OpenAI from 'openai';
 import { TimelineEntry, Prediction, PredictionScenario, TimelineAnalysis } from '../types';
 import { nanoid } from 'nanoid';
+import { JSON_SCHEMA } from './schemas';
+import { PROMPTS, SYSTEM_MESSAGES } from './prompts';
 
 // Lazy initialization to ensure dotenv is loaded first
 let openai: OpenAI | null = null;
+
+/**
+ * Validate and format sources to ensure they are valid HTTP URLs
+ */
+function validateAndFormatSources(sources: string[]): string[] {
+  if (!Array.isArray(sources)) return [];
+
+  return sources
+    .map(source => {
+      if (typeof source !== 'string') return null;
+
+      const trimmed = source.trim();
+
+      // If it's already a valid HTTP URL, return it
+      try {
+        const url = new URL(trimmed);
+        if (url.protocol === 'http:' || url.protocol === 'https:') {
+          return url.toString();
+        }
+      } catch {
+        // Not a valid URL, try to fix it
+      }
+
+      // Try to extract URL from text that might contain it
+      const urlRegex = /(https?:\/\/[^\s<>"']+)/i;
+      const match = trimmed.match(urlRegex);
+      if (match) {
+        try {
+          const url = new URL(match[1]);
+          if (url.protocol === 'http:' || url.protocol === 'https:') {
+            return url.toString();
+          }
+        } catch {
+          // Invalid URL
+        }
+      }
+
+      // If no valid URL found, return null (will be filtered out)
+      return null;
+    })
+    .filter((source): source is string => source !== null);
+}
 
 const getOpenAIClient = (): OpenAI => {
   if (!openai) {
@@ -47,7 +91,7 @@ const callPerplexityAPI = async (query: string): Promise<string> => {
       throw new Error(`Perplexity API error: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     return data.choices[0]?.message?.content || '';
   } catch (error) {
     console.error('Perplexity API error:', error);
@@ -60,32 +104,43 @@ export class PredictionService {
    * Auto-detect value label from topic (e.g., "Bitcoin" → "Price (USD)")
    */
   async detectValueLabel(topic: string): Promise<string> {
-    const prompt = `Given the topic "${topic}", determine what kind of value/metric would be most relevant to track over time. 
-
-Return ONLY a short label (2-5 words) that describes the value. Examples:
-- "Bitcoin" → "Price (USD)"
-- "New York City" → "Population"
-- "Tesla stock" → "Stock Price (USD)"
-- "Global CO2 emissions" → "CO2 Emissions (Mt)"
-
-Topic: "${topic}"
-Value Label:`;
+    const prompt = PROMPTS.detectValueLabel(topic);
 
     try {
       const completion = await getOpenAIClient().chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are a data analyst. Return only the value label, nothing else.',
+            content: SYSTEM_MESSAGES.VALUE_LABEL_DETECTOR,
           },
           {
             role: 'user',
             content: prompt,
           },
         ],
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'search_web',
+              description: 'Search the web for information about what metrics are commonly tracked for this topic',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'The search query about common metrics for this topic',
+                  },
+                },
+                required: ['query'],
+              },
+            },
+          },
+        ],
+        tool_choice: 'auto',
         temperature: 0.3,
-        max_tokens: 20,
+        max_tokens: 30,
       });
 
       const label = completion.choices[0]?.message?.content?.trim() || 'Value';
@@ -97,7 +152,108 @@ Value Label:`;
   }
 
   /**
-   * Research past data using AI with web access
+   * Research both past data and current state using AI with web access in a SINGLE REQUEST
+   * Focuses on major events: big pumps/dumps and market conditions (bull/bear markets)
+   */
+  async researchCombinedData(
+    topic: string,
+    valueLabel: string,
+    yearsBack: number = 10
+  ): Promise<{
+    pastEntries: TimelineEntry[];
+    presentEntry: TimelineEntry;
+  }> {
+    const currentDate = new Date();
+    const startDate = new Date();
+    startDate.setFullYear(currentDate.getFullYear() - yearsBack);
+
+    // Use OpenAI with function calling for web browsing, or Perplexity as fallback
+    const usePerplexity = !!process.env.PERPLEXITY_API_KEY;
+
+    const query = PROMPTS.combinedResearch(topic, valueLabel, currentDate, startDate);
+
+    try {
+      let researchResult: string;
+
+      if (usePerplexity) {
+        // Use Perplexity API (has built-in web access)
+        researchResult = await callPerplexityAPI(query);
+      } else {
+        // Use OpenAI GPT-4o-mini with function calling for web browsing
+        const completion = await getOpenAIClient().chat.completions.create({
+          model: 'gpt-5-mini',
+          messages: [
+            {
+              role: 'system',
+              content: SYSTEM_MESSAGES.FINANCIAL_ANALYST,
+            },
+            {
+              role: 'user',
+              content: query,
+            },
+          ],
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'search_web',
+                description: 'Search the web for current market data, historical prices, news events, and official statistics',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    query: {
+                      type: 'string',
+                      description: 'Specific search query for market data, historical events, or current values',
+                    },
+                  },
+                  required: ['query'],
+                },
+              },
+            },
+          ],
+          tool_choice: 'auto',
+          temperature: 0.2, // Lower temperature for more factual responses
+          max_tokens: 6000, // Increased for comprehensive data
+        });
+
+        researchResult = completion.choices[0]?.message?.content || '';
+      }
+
+      // Parse the combined research result
+      const { pastEntries, presentEntry } = await this.parseCombinedResearchResult(researchResult, valueLabel, currentDate);
+
+      // Limit historical events to max 4 per year and sort by date
+      const limitedPastEntries = this.limitEventsPerYear(pastEntries, yearsBack);
+
+      return {
+        pastEntries: limitedPastEntries,
+        presentEntry,
+      };
+    } catch (error) {
+      console.error('Error researching combined data:', error);
+      // Fallback: use separate methods
+      const pastEntries = await this.fallbackPastResearch(topic, valueLabel, yearsBack);
+      const presentEntry = await this.fallbackPresentResearch(topic, valueLabel);
+      return { pastEntries, presentEntry };
+    }
+  }
+
+  /**
+   * Fallback method for present research when combined research fails
+   */
+  private async fallbackPresentResearch(topic: string, valueLabel: string): Promise<TimelineEntry> {
+    const currentDate = new Date();
+    return {
+      date: currentDate,
+      value: 0,
+      valueLabel,
+      summary: `Current state information for ${topic} is not available.`,
+      sources: [],
+    };
+  }
+
+  /**
+   * Research past data using AI with web access (legacy method, kept for compatibility)
    * Focuses on major events: big pumps/dumps and market conditions (bull/bear markets)
    */
   async researchPastData(
@@ -112,33 +268,7 @@ Value Label:`;
     // Use OpenAI with function calling for web browsing, or Perplexity as fallback
     const usePerplexity = !!process.env.PERPLEXITY_API_KEY;
 
-    const query = `Research historical data about "${topic}" focusing on ${valueLabel} from ${startDate.getFullYear()} to ${currentDate.getFullYear()}. 
-
-IMPORTANT: Find the BIGGEST EVENTS only - maximum 4 events per year (40 total for 10 years).
-
-Focus on:
-1. MAJOR PRICE MOVEMENTS (pumps and dumps):
-   - Significant price increases (pumps) - what caused them and the ${valueLabel} value
-   - Significant price decreases (dumps) - what caused them and the ${valueLabel} value
-   - Include the percentage change and reasons for each movement
-
-2. MARKET CONDITIONS:
-   - Bull market periods - when they started/ended, ${valueLabel} values, and reasons why
-   - Bear market periods - when they started/ended, ${valueLabel} values, and reasons why
-   - Market cycle transitions - when bull turned to bear or vice versa
-
-3. For each event, provide:
-   - Specific date (year and month, or specific date if available)
-   - The ${valueLabel} value at that time
-   - Event type: "pump", "dump", "bull_market_start", "bull_market_end", "bear_market_start", "bear_market_end", or "major_event"
-   - Detailed summary (3-4 sentences) explaining:
-     * What happened (the event)
-     * Why it happened (the reasons/causes)
-     * Impact on the ${valueLabel}
-     * Market sentiment/conditions
-   - Sources/URLs where this information can be found
-
-Prioritize events with the largest impact on ${valueLabel}. Return data in JSON format with an array of entries, each with: date, value, eventType, summary, sources.`;
+    const query = PROMPTS.researchPastData(topic, valueLabel, startDate, currentDate);
 
     try {
       let researchResult: string;
@@ -147,13 +277,13 @@ Prioritize events with the largest impact on ${valueLabel}. Return data in JSON 
         // Use Perplexity API (has built-in web access)
         researchResult = await callPerplexityAPI(query);
       } else {
-        // Use OpenAI with function calling for web browsing
+        // Use OpenAI GPT-4o-mini with function calling for web browsing
         const completion = await getOpenAIClient().chat.completions.create({
-          model: 'gpt-4o',
+          model: 'gpt-5-mini',
           messages: [
             {
               role: 'system',
-              content: 'You are a research assistant with access to current web data. Provide accurate historical information with sources.',
+              content: SYSTEM_MESSAGES.HISTORICAL_ANALYST,
             },
             {
               role: 'user',
@@ -165,13 +295,13 @@ Prioritize events with the largest impact on ${valueLabel}. Return data in JSON 
               type: 'function',
               function: {
                 name: 'search_web',
-                description: 'Search the web for current and historical information',
+                description: 'Search historical market data, news archives, and financial records for significant events',
                 parameters: {
                   type: 'object',
                   properties: {
                     query: {
                       type: 'string',
-                      description: 'The search query',
+                      description: 'Search query for historical market events and data',
                     },
                   },
                   required: ['query'],
@@ -180,8 +310,8 @@ Prioritize events with the largest impact on ${valueLabel}. Return data in JSON 
             },
           ],
           tool_choice: 'auto',
-          temperature: 0.7,
-          max_tokens: 4000,
+          temperature: 0.3, // Lower temperature for factual historical data
+          max_tokens: 5000,
         });
 
         researchResult = completion.choices[0]?.message?.content || '';
@@ -189,7 +319,7 @@ Prioritize events with the largest impact on ${valueLabel}. Return data in JSON 
 
       // Parse the research result and extract timeline entries
       const entries = await this.parseResearchResult(researchResult, valueLabel);
-      
+
       // Limit to max 4 events per year and sort by date
       return this.limitEventsPerYear(entries, yearsBack);
     } catch (error) {
@@ -204,14 +334,7 @@ Prioritize events with the largest impact on ${valueLabel}. Return data in JSON 
    */
   async researchPresentState(topic: string, valueLabel: string): Promise<TimelineEntry> {
     const currentDate = new Date();
-    const query = `What is the current ${valueLabel} for "${topic}" as of ${currentDate.toISOString().split('T')[0]}? 
-
-Provide:
-1. The current ${valueLabel} value
-2. A brief summary of the current state (2-3 sentences)
-3. Sources/URLs where this current information can be found
-
-Return in JSON format: { value: number, summary: string, sources: string[] }`;
+    const query = PROMPTS.researchPresentState(topic, valueLabel, currentDate);
 
     const usePerplexity = !!process.env.PERPLEXITY_API_KEY;
 
@@ -222,11 +345,11 @@ Return in JSON format: { value: number, summary: string, sources: string[] }`;
         researchResult = await callPerplexityAPI(query);
       } else {
         const completion = await getOpenAIClient().chat.completions.create({
-          model: 'gpt-4o',
+          model: 'gpt-5-mini',
           messages: [
             {
               role: 'system',
-              content: 'You are a research assistant with access to current web data. Provide the most recent information available.',
+              content: SYSTEM_MESSAGES.MARKET_DATA_SPECIALIST,
             },
             {
               role: 'user',
@@ -238,13 +361,13 @@ Return in JSON format: { value: number, summary: string, sources: string[] }`;
               type: 'function',
               function: {
                 name: 'search_web',
-                description: 'Search the web for current information',
+                description: 'Search for current market prices, real-time data, and official statistics',
                 parameters: {
                   type: 'object',
                   properties: {
                     query: {
                       type: 'string',
-                      description: 'The search query',
+                      description: 'Search query for current market data or prices',
                     },
                   },
                   required: ['query'],
@@ -253,8 +376,8 @@ Return in JSON format: { value: number, summary: string, sources: string[] }`;
             },
           ],
           tool_choice: 'auto',
-          temperature: 0.7,
-          max_tokens: 2000,
+          temperature: 0.1, // Very low for factual data
+          max_tokens: 2500,
         });
 
         researchResult = completion.choices[0]?.message?.content || '';
@@ -313,59 +436,57 @@ Return in JSON format: { value: number, summary: string, sources: string[] }`;
 
     const intervalsList = intervals.map((interval, idx) => `${idx + 1}. ${interval}`).join('\n');
 
-    const prompt = `Based on the historical data and current state for "${topic}", generate 3-5 different prediction scenarios for EACH of the following time intervals:
-
-Time Intervals:
-${intervalsList}
-
-Historical data (recent):
-${historicalSummary}
-
-Current state (${presentEntry.date.toISOString().split('T')[0]}):
-${presentEntry.valueLabel} = ${presentEntry.value}
-${presentEntry.summary}
-
-For EACH interval above, provide 3-5 scenarios. For each scenario, provide:
-1. A title (e.g., "Bullish", "Bearish", "Neutral", "Optimistic", "Pessimistic")
-2. A predicted ${valueLabel} value
-3. A detailed summary explaining why this scenario could happen (3-4 sentences)
-4. Sources/reasons that support this prediction
-5. A confidence score (0-100) indicating how likely this scenario is
-
-Return in JSON format:
-{
-  "predictions": [
-    {
-      "timeline": "1 month",
-      "scenarios": [
-        {
-          "title": "Scenario Title",
-          "predictedValue": number,
-          "summary": "Detailed explanation",
-          "sources": ["source1", "source2"],
-          "confidenceScore": number
-        }
-      ]
-    }
-  ]
-}`;
+    const prompt = PROMPTS.generatePredictionsBatch(
+      topic,
+      valueLabel,
+      intervalsList,
+      historicalSummary,
+      presentEntry
+    );
 
     try {
       const completion = await getOpenAIClient().chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are a financial/data analyst. Generate realistic prediction scenarios based on historical trends and current conditions. Always provide at least 3 scenarios per interval. Return valid JSON only.',
+            content: SYSTEM_MESSAGES.SENIOR_FINANCIAL_ANALYST,
           },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        temperature: 0.8,
-        response_format: { type: 'json_object' },
-        max_tokens: 16000, // Increased for single batch with all 11 intervals
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'search_web',
+              description: 'Search for current market news, analyst reports, economic data, and industry developments to support predictions',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'Search query for market data, news, or economic indicators',
+                  },
+                },
+                required: ['query'],
+              },
+            },
+          },
+        ],
+        tool_choice: 'auto',
+        temperature: 0.6, // Balanced creativity and accuracy
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'predictions_batch',
+            schema: JSON_SCHEMA.PREDICTIONS_BATCH,
+            strict: true,
+          },
+        },
+        max_tokens: 18000, // Increased for comprehensive analysis
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -385,20 +506,14 @@ Return in JSON format:
             id: nanoid(),
             title: s.title || `Scenario ${idx + 1}`,
             summary: s.summary || '',
-            sources: Array.isArray(s.sources) ? s.sources : [],
-            confidenceScore: Math.max(0, Math.min(100, s.confidenceScore || 50)),
+            sources: validateAndFormatSources(Array.isArray(s.sources) ? s.sources : []),
+            confidenceScore: Math.max(0, Math.min(100, s.confidenceScore ?? 0)),
             predictedValue: s.predictedValue,
           }));
 
-          // Ensure at least 3 scenarios
-          while (scenarios.length < 3) {
-            scenarios.push({
-              id: nanoid(),
-              title: `Scenario ${scenarios.length + 1}`,
-              summary: 'Additional scenario based on historical trends.',
-              sources: [],
-              confidenceScore: 50,
-            });
+          // Schema requires at least 3 scenarios, but validate just in case
+          if (scenarios.length < 3) {
+            console.warn(`Warning: Only ${scenarios.length} scenarios received for interval ${interval}, expected at least 3. Schema should enforce this.`);
           }
 
           predictions.push({
@@ -406,33 +521,10 @@ Return in JSON format:
             scenarios,
           });
         } else {
-          // Fallback if interval not found in response
-          predictions.push({
-            timeline: interval,
-            scenarios: [
-              {
-                id: nanoid(),
-                title: 'Optimistic',
-                summary: `Optimistic scenario for ${topic} in ${interval}.`,
-                sources: [],
-                confidenceScore: 33,
-              },
-              {
-                id: nanoid(),
-                title: 'Neutral',
-                summary: `Neutral scenario for ${topic} in ${interval}.`,
-                sources: [],
-                confidenceScore: 34,
-              },
-              {
-                id: nanoid(),
-                title: 'Pessimistic',
-                summary: `Pessimistic scenario for ${topic} in ${interval}.`,
-                sources: [],
-                confidenceScore: 33,
-              },
-            ],
-          });
+          // Interval not found in response - this shouldn't happen with strict schema
+          console.error(`Error: Interval "${interval}" not found in AI response. Schema should enforce all intervals are present.`);
+          // Skip this interval rather than creating hardcoded fallback scenarios
+          // The schema should ensure all intervals are provided by the AI
         }
       }
 
@@ -470,51 +562,57 @@ Return in JSON format:
       .map(e => `${e.date.toISOString().split('T')[0]}: ${e.valueLabel} = ${e.value}`)
       .join('\n');
 
-    const prompt = `Based on the historical data and current state for "${topic}", generate 3-5 different prediction scenarios for ${interval} from now.
-
-Historical data (recent):
-${historicalSummary}
-
-Current state (${presentEntry.date.toISOString().split('T')[0]}):
-${presentEntry.valueLabel} = ${presentEntry.value}
-${presentEntry.summary}
-
-For each scenario, provide:
-1. A title (e.g., "Bullish", "Bearish", "Neutral", "Optimistic", "Pessimistic")
-2. A predicted ${valueLabel} value
-3. A detailed summary explaining why this scenario could happen (3-4 sentences)
-4. Sources/reasons that support this prediction
-5. A confidence score (0-100) indicating how likely this scenario is
-
-Return in JSON format:
-{
-  "scenarios": [
-    {
-      "title": "Scenario Title",
-      "predictedValue": number,
-      "summary": "Detailed explanation",
-      "sources": ["source1", "source2"],
-      "confidenceScore": number
-    }
-  ]
-}`;
+    const prompt = PROMPTS.generatePredictionForInterval(
+      topic,
+      valueLabel,
+      interval,
+      historicalSummary,
+      presentEntry
+    );
 
     try {
       const completion = await getOpenAIClient().chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are a financial/data analyst. Generate realistic prediction scenarios based on historical trends and current conditions. Always provide at least 3 scenarios.',
+            content: SYSTEM_MESSAGES.SENIOR_FINANCIAL_ANALYST,
           },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        temperature: 0.8,
-        response_format: { type: 'json_object' },
-        max_tokens: 3000,
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'search_web',
+              description: 'Search for current market news, analyst reports, economic data, and industry developments to support predictions',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'Search query for market data, news, or economic indicators',
+                  },
+                },
+                required: ['query'],
+              },
+            },
+          },
+        ],
+        tool_choice: 'auto',
+        temperature: 0.6, // Balanced creativity and accuracy
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'prediction_scenarios',
+            schema: JSON_SCHEMA.PREDICTION_SCENARIOS,
+            strict: true,
+          },
+        },
+        max_tokens: 3500,
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -527,20 +625,14 @@ Return in JSON format:
         id: nanoid(),
         title: s.title || `Scenario ${idx + 1}`,
         summary: s.summary || '',
-        sources: Array.isArray(s.sources) ? s.sources : [],
-        confidenceScore: Math.max(0, Math.min(100, s.confidenceScore || 50)),
+        sources: validateAndFormatSources(Array.isArray(s.sources) ? s.sources : []),
+        confidenceScore: Math.max(0, Math.min(100, s.confidenceScore ?? 0)),
         predictedValue: s.predictedValue,
       }));
 
-      // Ensure at least 3 scenarios
-      while (scenarios.length < 3) {
-        scenarios.push({
-          id: nanoid(),
-          title: `Scenario ${scenarios.length + 1}`,
-          summary: 'Additional scenario based on historical trends.',
-          sources: [],
-          confidenceScore: 50,
-        });
+      // Schema requires at least 3 scenarios, but validate just in case
+      if (scenarios.length < 3) {
+        console.warn(`Warning: Only ${scenarios.length} scenarios received for interval ${interval}, expected at least 3. Schema should enforce this.`);
       }
 
       return {
@@ -549,34 +641,99 @@ Return in JSON format:
       };
     } catch (error) {
       console.error(`Error generating prediction for ${interval}:`, error);
-      // Fallback: return 3 basic scenarios
-      return {
-        timeline: interval,
-        scenarios: [
-          {
-            id: nanoid(),
-            title: 'Optimistic',
-            summary: `Optimistic scenario for ${topic} in ${interval}.`,
-            sources: [],
-            confidenceScore: 33,
-          },
-          {
-            id: nanoid(),
-            title: 'Neutral',
-            summary: `Neutral scenario for ${topic} in ${interval}.`,
-            sources: [],
-            confidenceScore: 34,
-          },
-          {
-            id: nanoid(),
-            title: 'Pessimistic',
-            summary: `Pessimistic scenario for ${topic} in ${interval}.`,
-            sources: [],
-            confidenceScore: 33,
-          },
-        ],
-      };
+      // Error case - throw error instead of returning hardcoded scenarios
+      // The AI should always provide valid scenarios with confidence scores
+      throw new Error(`Failed to generate predictions for interval ${interval}. AI should provide scenarios with confidence scores.`);
     }
+  }
+
+  /**
+   * Parse combined research result into past entries and present entry
+   */
+  private async parseCombinedResearchResult(
+    result: string,
+    valueLabel: string,
+    currentDate: Date
+  ): Promise<{
+    pastEntries: TimelineEntry[];
+    presentEntry: TimelineEntry;
+  }> {
+    try {
+      // Try to extract JSON from the result
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+
+        // Parse current data
+        const presentEntry: TimelineEntry = {
+          date: currentDate,
+          value: parsed.current?.value || 0,
+          valueLabel,
+          summary: parsed.current?.summary || '',
+          sources: validateAndFormatSources(Array.isArray(parsed.current?.sources) ? parsed.current.sources : []),
+        };
+
+        // Parse historical data
+        const pastEntries: TimelineEntry[] = [];
+        if (Array.isArray(parsed.historical || parsed.entries)) {
+          const data = parsed.historical || parsed.entries;
+          for (const item of data) {
+            if (item.date && typeof item.value === 'number') {
+              // Build enhanced summary with event type information
+              let summary = item.summary || '';
+              if (item.eventType) {
+                const eventTypeLabel = this.getEventTypeLabel(item.eventType);
+                summary = `[${eventTypeLabel}] ${summary}`;
+              }
+
+              pastEntries.push({
+                date: new Date(item.date),
+                value: item.value,
+                valueLabel,
+                summary,
+                sources: validateAndFormatSources(Array.isArray(item.sources) ? item.sources : []),
+              });
+            }
+          }
+        }
+
+        return {
+          pastEntries: pastEntries.sort((a, b) => a.date.getTime() - b.date.getTime()),
+          presentEntry,
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing combined research result:', error);
+    }
+
+    // Fallback: try to parse as separate sections
+    return await this.fallbackParseCombinedResult(result, valueLabel, currentDate);
+  }
+
+  /**
+   * Fallback parsing for combined research result when JSON parsing fails
+   */
+  private async fallbackParseCombinedResult(
+    result: string,
+    valueLabel: string,
+    currentDate: Date
+  ): Promise<{
+    pastEntries: TimelineEntry[];
+    presentEntry: TimelineEntry;
+  }> {
+    // Try to extract current value from text
+    const presentEntry: TimelineEntry = {
+      date: currentDate,
+      value: 0,
+      valueLabel,
+      summary: 'Current state information extracted from research.',
+      sources: [],
+    };
+
+    // Try to extract past entries using the existing text parsing method
+    const pastEntries = await this.extractEntriesFromText(result, valueLabel);
+
+    return { pastEntries, presentEntry };
   }
 
   /**
@@ -606,7 +763,7 @@ Return in JSON format:
                 value: item.value,
                 valueLabel,
                 summary,
-                sources: Array.isArray(item.sources) ? item.sources : [],
+                sources: validateAndFormatSources(Array.isArray(item.sources) ? item.sources : []),
               });
             }
           }
@@ -662,7 +819,7 @@ Return in JSON format:
     
     for (const [year, yearEntries] of entriesByYear.entries()) {
       // Sort by significance (longer summaries, or containing key terms)
-      const sorted = yearEntries.sort((a, b) => {
+      const sorted = yearEntries.sort((a: TimelineEntry, b: TimelineEntry) => {
         const aScore = this.calculateEventSignificance(a);
         const bScore = this.calculateEventSignificance(b);
         return bScore - aScore; // Descending order
@@ -709,39 +866,51 @@ Return in JSON format:
    * Focuses on major events: pumps, dumps, bull/bear markets
    */
   private async extractEntriesFromText(text: string, valueLabel: string): Promise<TimelineEntry[]> {
-    const prompt = `Extract the BIGGEST EVENTS from the following text about historical ${valueLabel} data. 
-Focus on major price movements (pumps/dumps) and market conditions (bull/bear markets).
-
-For each event, identify:
-- Event type: "pump", "dump", "bull_market_start", "bull_market_end", "bear_market_start", "bear_market_end", or "major_event"
-- Date (ISO format)
-- ${valueLabel} value (number)
-- Detailed summary (3-4 sentences) explaining what happened, why, and the impact
-- Sources (if mentioned)
-
-Prioritize events with largest impact. Maximum 4 events per year.
-
-Text:
-${text.substring(0, 4000)}
-
-Return JSON: { "entries": [{ "date": "YYYY-MM-DD", "value": number, "eventType": "pump|dump|bull_market_start|...", "summary": "...", "sources": [...] }] }`;
+    const prompt = PROMPTS.extractEntriesFromText(valueLabel, text);
 
     try {
       const completion = await getOpenAIClient().chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         messages: [
-          {
-            role: 'system',
-            content: 'Extract structured timeline data from text. Return valid JSON only.',
-          },
+            {
+              role: 'system',
+              content: SYSTEM_MESSAGES.DATA_EXTRACTION_SPECIALIST,
+            },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-        max_tokens: 2000,
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'search_web',
+              description: 'Search the web to verify historical dates, prices, and event details',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'Search query to verify historical event data',
+                  },
+                },
+                required: ['query'],
+              },
+            },
+          },
+        ],
+        tool_choice: 'auto',
+        temperature: 0.2,
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'historical_entries',
+            schema: JSON_SCHEMA.HISTORICAL_ENTRIES,
+            strict: true,
+          },
+        },
+        max_tokens: 3000,
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -759,10 +928,10 @@ Return JSON: { "entries": [{ "date": "YYYY-MM-DD", "value": number, "eventType":
             value: item.value || 0,
             valueLabel,
             summary,
-            sources: Array.isArray(item.sources) ? item.sources : [],
+            sources: validateAndFormatSources(Array.isArray(item.sources) ? item.sources : []),
           };
         });
-        return entries.sort((a, b) => a.date.getTime() - b.date.getTime());
+        return entries.sort((a: TimelineEntry, b: TimelineEntry) => a.date.getTime() - b.date.getTime());
       }
     } catch (error) {
       console.error('Error extracting entries from text:', error);
@@ -784,7 +953,7 @@ Return JSON: { "entries": [{ "date": "YYYY-MM-DD", "value": number, "eventType":
           value: parsed.value || 0,
           valueLabel,
           summary: parsed.summary || '',
-          sources: Array.isArray(parsed.sources) ? parsed.sources : [],
+          sources: validateAndFormatSources(Array.isArray(parsed.sources) ? parsed.sources : []),
         };
       }
     } catch (error) {
@@ -802,7 +971,7 @@ Return JSON: { "entries": [{ "date": "YYYY-MM-DD", "value": number, "eventType":
   }
 
   /**
-   * Fallback past research using OpenAI without web browsing
+   * Fallback past research using GPT-5 Mini with web browsing
    * Focuses on major events: pumps, dumps, bull/bear markets
    */
   private async fallbackPastResearch(
@@ -810,38 +979,51 @@ Return JSON: { "entries": [{ "date": "YYYY-MM-DD", "value": number, "eventType":
     valueLabel: string,
     yearsBack: number
   ): Promise<TimelineEntry[]> {
-    const prompt = `Provide the BIGGEST EVENTS for "${topic}" focusing on ${valueLabel} over the past ${yearsBack} years. 
-Maximum 4 events per year (${yearsBack * 4} total).
-
-Focus on:
-1. MAJOR PRICE MOVEMENTS: Significant pumps (price increases) and dumps (price decreases) with reasons
-2. MARKET CONDITIONS: Bull market periods and bear market periods with start/end dates and reasons
-
-For each event, provide:
-- Date (ISO format)
-- ${valueLabel} value (number)
-- Event type: "pump", "dump", "bull_market_start", "bull_market_end", "bear_market_start", "bear_market_end", or "major_event"
-- Detailed summary (3-4 sentences) explaining what happened, why it happened, and the impact
-- Sources (if available)
-
-Return JSON format: { "entries": [{ "date": "YYYY-MM-DD", "value": number, "eventType": "...", "summary": "...", "sources": [...] }] }`;
+    const prompt = PROMPTS.fallbackPastResearch(topic, valueLabel, yearsBack);
 
     try {
       const completion = await getOpenAIClient().chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         messages: [
-          {
-            role: 'system',
-            content: 'You are a financial/data analyst. Focus on major events: pumps, dumps, bull/bear markets. Provide historical data in JSON format with event types.',
-          },
+            {
+              role: 'system',
+              content: SYSTEM_MESSAGES.HISTORICAL_RESEARCHER,
+            },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        temperature: 0.7,
-        response_format: { type: 'json_object' },
-        max_tokens: 3000,
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'search_web',
+              description: 'Search historical market data and news archives for significant events',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'Search query for historical market events',
+                  },
+                },
+                required: ['query'],
+              },
+            },
+          },
+        ],
+        tool_choice: 'auto',
+        temperature: 0.4, // Balanced for historical research
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'historical_entries',
+            schema: JSON_SCHEMA.HISTORICAL_ENTRIES,
+            strict: true,
+          },
+        },
+        max_tokens: 3500,
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -859,7 +1041,7 @@ Return JSON format: { "entries": [{ "date": "YYYY-MM-DD", "value": number, "even
             value: item.value || 0,
             valueLabel,
             summary,
-            sources: Array.isArray(item.sources) ? item.sources : [],
+            sources: validateAndFormatSources(Array.isArray(item.sources) ? item.sources : []),
           };
         });
         
@@ -874,32 +1056,176 @@ Return JSON format: { "entries": [{ "date": "YYYY-MM-DD", "value": number, "even
   }
 
   /**
-   * Generate complete timeline analysis
+   * Generate complete timeline analysis in a SINGLE API call
+   * Gets value label, past data, current data, and predictions all at once
    */
   async generateTimelineAnalysis(topic: string): Promise<Omit<TimelineAnalysis, 'id' | 'slug' | 'createdAt' | 'updatedAt' | 'userId' | 'isPublic' | 'viewCount'>> {
-    console.log(`[Timeline Generation] Starting timeline analysis for topic: "${topic}"`);
+    console.log(`[Timeline Generation] Starting complete timeline analysis for topic: "${topic}" (single API call)`);
 
-    // Step 1: Detect value label
-    console.log(`[Timeline Generation] Step 1/4: Detecting value label...`);
+    const currentDate = new Date();
+    const startDate = new Date();
+    startDate.setFullYear(currentDate.getFullYear() - 10);
+
+    const intervals = ['1 month', '1 year', '2 years', '3 years', '4 years', '5 years', '6 years', '7 years', '8 years', '9 years', '10 years'];
+    const intervalsList = intervals.map((interval, idx) => `${idx + 1}. ${interval}`).join('\n');
+
+    const prompt = PROMPTS.generateTimelineAnalysis(topic, currentDate, startDate, intervalsList);
+
+    try {
+      const completion = await getOpenAIClient().chat.completions.create({
+        model: 'gpt-5-mini',
+        messages: [
+            {
+              role: 'system',
+              content: SYSTEM_MESSAGES.COMPREHENSIVE_ANALYST,
+            },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'search_web',
+              description: 'Search the web for current market data, historical prices, news events, analyst reports, and official statistics',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'Search query for market data, historical events, current prices, or predictions',
+                  },
+                },
+                required: ['query'],
+              },
+            },
+          },
+        ],
+        tool_choice: 'auto',
+        temperature: 0.3,
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'timeline_analysis',
+            schema: JSON_SCHEMA.TIMELINE_ANALYSIS,
+            strict: true,
+          },
+        },
+        max_tokens: 20000, // Large token limit for comprehensive response
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      const parsed = JSON.parse(content);
+      
+      // Extract value label
+      const valueLabel = parsed.valueLabel || 'Value';
+      console.log(`[Timeline Generation] Detected value label: "${valueLabel}"`);
+
+      // Parse current state
+      const presentEntry: TimelineEntry = {
+        date: currentDate,
+        value: parsed.current?.value || 0,
+        valueLabel,
+        summary: parsed.current?.summary || '',
+        sources: validateAndFormatSources(Array.isArray(parsed.current?.sources) ? parsed.current.sources : []),
+      };
+      console.log(`[Timeline Generation] Current value: ${valueLabel} = ${presentEntry.value}`);
+
+      // Parse historical data
+      const pastEntries: TimelineEntry[] = [];
+      if (Array.isArray(parsed.historical)) {
+        for (const item of parsed.historical) {
+          if (item.date && typeof item.value === 'number') {
+            let summary = item.summary || '';
+            if (item.eventType) {
+              const eventTypeLabel = this.getEventTypeLabel(item.eventType);
+              summary = `[${eventTypeLabel}] ${summary}`;
+            }
+
+            pastEntries.push({
+              date: new Date(item.date),
+              value: item.value,
+              valueLabel,
+              summary,
+              sources: validateAndFormatSources(Array.isArray(item.sources) ? item.sources : []),
+            });
+          }
+        }
+      }
+      
+      // Limit to max 4 events per year
+      const limitedPastEntries = this.limitEventsPerYear(pastEntries, 10);
+      console.log(`[Timeline Generation] Found ${limitedPastEntries.length} past entries`);
+
+      // Parse predictions
+      const predictions: Prediction[] = [];
+      if (Array.isArray(parsed.predictions)) {
+        for (const pred of parsed.predictions) {
+          if (pred.timeline && Array.isArray(pred.scenarios)) {
+            const scenarios: PredictionScenario[] = pred.scenarios.slice(0, 5).map((s: any, idx: number) => ({
+              id: nanoid(),
+              title: s.title || `Scenario ${idx + 1}`,
+              summary: s.summary || '',
+              sources: validateAndFormatSources(Array.isArray(s.sources) ? s.sources : []),
+              confidenceScore: Math.max(0, Math.min(100, s.confidenceScore ?? 0)),
+              predictedValue: s.predictedValue,
+            }));
+
+            // Schema requires at least 3 scenarios, but validate just in case
+            if (scenarios.length < 3) {
+              console.warn(`Warning: Only ${scenarios.length} scenarios received for interval ${pred.timeline}, expected at least 3. Schema should enforce this.`);
+            }
+
+            predictions.push({
+              timeline: pred.timeline,
+              scenarios,
+            });
+          }
+        }
+      }
+
+      // Validate all intervals are present - schema should enforce this
+      for (const interval of intervals) {
+        if (!predictions.find(p => p.timeline === interval)) {
+          console.error(`Error: Interval "${interval}" missing from AI response. Schema should enforce all intervals are present.`);
+        }
+      }
+
+      console.log(`[Timeline Generation] Generated ${predictions.length} prediction intervals`);
+      console.log(`[Timeline Generation] Complete! (Single API call)`);
+
+      return {
+        topic,
+        valueLabel,
+        pastEntries: limitedPastEntries,
+        presentEntry,
+        predictions: predictions.sort((a, b) => {
+          const order = intervals.indexOf(a.timeline) - intervals.indexOf(b.timeline);
+          return order;
+        }),
+      };
+    } catch (error) {
+      console.error('[Timeline Generation] Error in single API call, falling back to multi-call approach:', error);
+      // Fallback to original multi-call approach if single call fails
+      return this.generateTimelineAnalysisFallback(topic);
+    }
+  }
+
+  /**
+   * Fallback method using multiple API calls (original approach)
+   */
+  private async generateTimelineAnalysisFallback(topic: string): Promise<Omit<TimelineAnalysis, 'id' | 'slug' | 'createdAt' | 'updatedAt' | 'userId' | 'isPublic' | 'viewCount'>> {
+    console.log(`[Timeline Generation] Using fallback multi-call approach for topic: "${topic}"`);
+
     const valueLabel = await this.detectValueLabel(topic);
-    console.log(`[Timeline Generation] Detected value label: "${valueLabel}"`);
-
-    // Step 2: Research past data
-    console.log(`[Timeline Generation] Step 2/4: Researching past data (up to 10 years)...`);
-    const pastEntries = await this.researchPastData(topic, valueLabel, 10);
-    console.log(`[Timeline Generation] Found ${pastEntries.length} past entries`);
-
-    // Step 3: Research present state
-    console.log(`[Timeline Generation] Step 3/4: Researching present state...`);
-    const presentEntry = await this.researchPresentState(topic, valueLabel);
-    console.log(`[Timeline Generation] Present state: ${valueLabel} = ${presentEntry.value}`);
-
-    // Step 4: Generate predictions (single batch for maximum cost optimization)
-    console.log(`[Timeline Generation] Step 4/4: Generating predictions for 11 intervals (single API call)...`);
+    const { pastEntries, presentEntry } = await this.researchCombinedData(topic, valueLabel, 10);
     const predictions = await this.generatePredictions(topic, valueLabel, pastEntries, presentEntry);
-    console.log(`[Timeline Generation] Generated ${predictions.length} prediction intervals (cost optimized: 1 API call instead of 11)`);
-
-    console.log(`[Timeline Generation] Timeline analysis complete!`);
 
     return {
       topic,
@@ -1009,68 +1335,40 @@ ${prevPred.scenarios.map(s =>
 
     const intervalsList = intervals.map((interval, idx) => `${idx + 1}. ${interval}`).join('\n');
 
-    const prompt = `Based on the historical data, current state, and PREVIOUS PREDICTIONS for "${topic}", generate 3-5 updated prediction scenarios for EACH of the following time intervals:
-
-Time Intervals:
-${intervalsList}
-
-Historical data (recent):
-${historicalSummary}
-
-PREVIOUS state (${previousPresentEntry.date.toISOString().split('T')[0]}):
-${previousPresentEntry.valueLabel} = ${previousPresentEntry.value}
-
-CURRENT state (${newPresentEntry.date.toISOString().split('T')[0]}):
-${newPresentEntry.valueLabel} = ${newPresentEntry.value}
-${newPresentEntry.summary}
-${valueChange !== 0 ? `\nValue change: ${valueChange > 0 ? '+' : ''}${valueChange} (${valueChangePercent}%)` : ''}
-
-PREVIOUS PREDICTIONS:
-${previousContexts || 'No previous predictions available'}
-
-IMPORTANT: The current value has changed from ${previousPresentEntry.value} to ${newPresentEntry.value} (${valueChange > 0 ? '+' : ''}${valueChangePercent}% change).
-For EACH interval, adjust your predictions based on this new information and the previous predictions.
-
-For EACH interval above, provide 3-5 scenarios. For each scenario, provide:
-1. A title (e.g., "Bullish", "Bearish", "Neutral", "Optimistic", "Pessimistic")
-2. A predicted ${valueLabel} value (adjusted based on the new current value and previous predictions)
-3. A detailed summary explaining why this scenario could happen, considering the value change and previous predictions (3-4 sentences)
-4. Sources/reasons that support this prediction
-5. A confidence score (0-100) indicating how likely this scenario is
-
-Return in JSON format:
-{
-  "predictions": [
-    {
-      "timeline": "1 month",
-      "scenarios": [
-        {
-          "title": "Scenario Title",
-          "predictedValue": number,
-          "summary": "Detailed explanation",
-          "sources": ["source1", "source2"],
-          "confidenceScore": number
-        }
-      ]
-    }
-  ]
-}`;
+    const prompt = PROMPTS.generatePredictionsBatchWithContext(
+      topic,
+      valueLabel,
+      intervalsList,
+      historicalSummary,
+      previousPresentEntry,
+      newPresentEntry,
+      valueChange,
+      valueChangePercent,
+      previousContexts
+    );
 
     try {
       const completion = await getOpenAIClient().chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         messages: [
-          {
-            role: 'system',
-            content: 'You are a financial/data analyst. Generate realistic prediction scenarios that adjust previous predictions based on new current values and trends. Always provide at least 3 scenarios per interval. Return valid JSON only.',
-          },
+            {
+              role: 'system',
+              content: SYSTEM_MESSAGES.PREDICTION_ADJUSTER,
+            },
           {
             role: 'user',
             content: prompt,
           },
         ],
         temperature: 0.8,
-        response_format: { type: 'json_object' },
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'predictions_batch',
+            schema: JSON_SCHEMA.PREDICTIONS_BATCH,
+            strict: true,
+          },
+        },
         max_tokens: 16000, // Increased for single batch with all 11 intervals
       });
 
@@ -1091,20 +1389,14 @@ Return in JSON format:
             id: nanoid(),
             title: s.title || `Scenario ${idx + 1}`,
             summary: s.summary || '',
-            sources: Array.isArray(s.sources) ? s.sources : [],
-            confidenceScore: Math.max(0, Math.min(100, s.confidenceScore || 50)),
+            sources: validateAndFormatSources(Array.isArray(s.sources) ? s.sources : []),
+            confidenceScore: Math.max(0, Math.min(100, s.confidenceScore ?? 0)),
             predictedValue: s.predictedValue,
           }));
 
-          // Ensure at least 3 scenarios
-          while (scenarios.length < 3) {
-            scenarios.push({
-              id: nanoid(),
-              title: `Scenario ${scenarios.length + 1}`,
-              summary: 'Additional scenario based on updated trends.',
-              sources: [],
-              confidenceScore: 50,
-            });
+          // Schema requires at least 3 scenarios, but validate just in case
+          if (scenarios.length < 3) {
+            console.warn(`Warning: Only ${scenarios.length} scenarios received for interval ${interval}, expected at least 3. Schema should enforce this.`);
           }
 
           predictions.push({
@@ -1112,34 +1404,9 @@ Return in JSON format:
             scenarios,
           });
         } else {
-          // Fallback if interval not found in response
-          const previousPrediction = previousPredictions.find(p => p.timeline === interval);
-          predictions.push({
-            timeline: interval,
-            scenarios: [
-              {
-                id: nanoid(),
-                title: 'Optimistic',
-                summary: `Optimistic scenario for ${topic} in ${interval}, adjusted for new value.`,
-                sources: [],
-                confidenceScore: 33,
-              },
-              {
-                id: nanoid(),
-                title: 'Neutral',
-                summary: `Neutral scenario for ${topic} in ${interval}, adjusted for new value.`,
-                sources: [],
-                confidenceScore: 34,
-              },
-              {
-                id: nanoid(),
-                title: 'Pessimistic',
-                summary: `Pessimistic scenario for ${topic} in ${interval}, adjusted for new value.`,
-                sources: [],
-                confidenceScore: 33,
-              },
-            ],
-          });
+          // Interval not found in response - this shouldn't happen with strict schema
+          console.error(`Error: Interval "${interval}" not found in AI response. Schema should enforce all intervals are present.`);
+          // Skip this interval rather than creating hardcoded fallback scenarios
         }
       }
 
@@ -1198,56 +1465,61 @@ IMPORTANT: The current value has changed from ${previousPresentEntry.value} to $
 Adjust your predictions based on this new information and the previous predictions.`;
     }
 
-    const prompt = `Based on the historical data, current state, and PREVIOUS PREDICTIONS for "${topic}", generate 3-5 updated prediction scenarios for ${interval} from now.
-
-Historical data (recent):
-${historicalSummary}
-
-PREVIOUS state (${previousPresentEntry.date.toISOString().split('T')[0]}):
-${previousPresentEntry.valueLabel} = ${previousPresentEntry.value}
-
-CURRENT state (${newPresentEntry.date.toISOString().split('T')[0]}):
-${newPresentEntry.valueLabel} = ${newPresentEntry.value}
-${newPresentEntry.summary}
-${valueChange !== 0 ? `\nValue change: ${valueChange > 0 ? '+' : ''}${valueChange} (${valueChangePercent}%)` : ''}
-${previousContext}
-
-For each scenario, provide:
-1. A title (e.g., "Bullish", "Bearish", "Neutral", "Optimistic", "Pessimistic")
-2. A predicted ${valueLabel} value (adjusted based on the new current value and previous predictions)
-3. A detailed summary explaining why this scenario could happen, considering the value change and previous predictions (3-4 sentences)
-4. Sources/reasons that support this prediction
-5. A confidence score (0-100) indicating how likely this scenario is
-
-Return in JSON format:
-{
-  "scenarios": [
-    {
-      "title": "Scenario Title",
-      "predictedValue": number,
-      "summary": "Detailed explanation",
-      "sources": ["source1", "source2"],
-      "confidenceScore": number
-    }
-  ]
-}`;
+    const prompt = PROMPTS.generatePredictionForIntervalWithContext(
+      topic,
+      valueLabel,
+      interval,
+      historicalSummary,
+      previousPresentEntry,
+      newPresentEntry,
+      valueChange,
+      valueChangePercent,
+      previousContext
+    );
 
     try {
       const completion = await getOpenAIClient().chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         messages: [
-          {
-            role: 'system',
-            content: 'You are a financial/data analyst. Generate realistic prediction scenarios that adjust previous predictions based on new current values and trends. Always provide at least 3 scenarios.',
-          },
+            {
+              role: 'system',
+              content: SYSTEM_MESSAGES.PREDICTION_REVISER,
+            },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        temperature: 0.8,
-        response_format: { type: 'json_object' },
-        max_tokens: 3000,
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'search_web',
+              description: 'Search for current market news, analyst reports, and economic data to understand value changes and support updated predictions',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'Search query for market data, news, or economic indicators',
+                  },
+                },
+                required: ['query'],
+              },
+            },
+          },
+        ],
+        tool_choice: 'auto',
+        temperature: 0.6, // Balanced creativity and accuracy
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'prediction_scenarios',
+            schema: JSON_SCHEMA.PREDICTION_SCENARIOS,
+            strict: true,
+          },
+        },
+        max_tokens: 3500,
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -1260,20 +1532,14 @@ Return in JSON format:
         id: nanoid(),
         title: s.title || `Scenario ${idx + 1}`,
         summary: s.summary || '',
-        sources: Array.isArray(s.sources) ? s.sources : [],
-        confidenceScore: Math.max(0, Math.min(100, s.confidenceScore || 50)),
+        sources: validateAndFormatSources(Array.isArray(s.sources) ? s.sources : []),
+        confidenceScore: Math.max(0, Math.min(100, s.confidenceScore ?? 0)),
         predictedValue: s.predictedValue,
       }));
 
-      // Ensure at least 3 scenarios
-      while (scenarios.length < 3) {
-        scenarios.push({
-          id: nanoid(),
-          title: `Scenario ${scenarios.length + 1}`,
-          summary: 'Additional scenario based on updated trends.',
-          sources: [],
-          confidenceScore: 50,
-        });
+      // Schema requires at least 3 scenarios, but validate just in case
+      if (scenarios.length < 3) {
+        console.warn(`Warning: Only ${scenarios.length} scenarios received for interval ${interval}, expected at least 3. Schema should enforce this.`);
       }
 
       return {
@@ -1282,33 +1548,9 @@ Return in JSON format:
       };
     } catch (error) {
       console.error(`Error generating prediction for ${interval}:`, error);
-      // Fallback: return 3 basic scenarios
-      return {
-        timeline: interval,
-        scenarios: [
-          {
-            id: nanoid(),
-            title: 'Optimistic',
-            summary: `Optimistic scenario for ${topic} in ${interval}, adjusted for new value.`,
-            sources: [],
-            confidenceScore: 33,
-          },
-          {
-            id: nanoid(),
-            title: 'Neutral',
-            summary: `Neutral scenario for ${topic} in ${interval}, adjusted for new value.`,
-            sources: [],
-            confidenceScore: 34,
-          },
-          {
-            id: nanoid(),
-            title: 'Pessimistic',
-            summary: `Pessimistic scenario for ${topic} in ${interval}, adjusted for new value.`,
-            sources: [],
-            confidenceScore: 33,
-          },
-        ],
-      };
+      // Error case - throw error instead of returning hardcoded scenarios
+      // The AI should always provide valid scenarios with confidence scores
+      throw new Error(`Failed to generate predictions for interval ${interval}. AI should provide scenarios with confidence scores.`);
     }
   }
 }

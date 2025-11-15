@@ -42,13 +42,61 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (data.type === 'prediction') {
       return null;
     }
+    
+    // Only show tooltip if there's at least one value available
+    const hasHistoricalValue = data.historicalValue !== null && data.historicalValue !== undefined;
+    const hasPredictionValue = data.predictionValue !== null && data.predictionValue !== undefined;
+    
+    if (!hasHistoricalValue && !hasPredictionValue) {
+      return null;
+    }
+    
+    // For present entry, prefer historicalValue (they're the same, but historicalValue is more appropriate)
+    // For past entries, show historicalValue
+    const valueToShow = hasHistoricalValue ? data.historicalValue : data.predictionValue;
+    const hasSummary = data.summary && data.summary.trim().length > 0;
+    const hasSources = data.sources && Array.isArray(data.sources) && data.sources.length > 0;
+    
+    // Show only what's available, similar to prediction tooltip logic
     return (
       <div className="custom-tooltip">
-        <p className="tooltip-label">{label}</p>
-        {data.historicalValue !== null && (
-          <p className="tooltip-value" style={{ color: '#667eea' }}>
-            Value: {data.historicalValue.toLocaleString()}
-          </p>
+        <div className="tooltip-header">
+          <span className="tooltip-label">{label}</span>
+        </div>
+        {valueToShow !== null && valueToShow !== undefined && (
+          <div className="tooltip-value-container">
+            <div className="tooltip-value" style={{ color: data.type === 'present' ? '#10b981' : '#667eea' }}>
+              {valueToShow.toLocaleString()}
+            </div>
+          </div>
+        )}
+        {hasSummary && (
+          <div className="tooltip-summary-section">
+            <div className="tooltip-summary-text">{data.summary}</div>
+          </div>
+        )}
+        {hasSources && (
+          <div className="tooltip-sources-section">
+            <div className="tooltip-sources-label">Sources</div>
+            <div className="tooltip-sources-list">
+              {data.sources.slice(0, 2).map((source: string, index: number) => (
+                <a 
+                  key={index}
+                  href={source} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="tooltip-source-link"
+                  onClick={(e) => e.stopPropagation()}
+                  title={source}
+                >
+                  {source.length > 40 ? `${source.substring(0, 37)}...` : source}
+                </a>
+              ))}
+              {data.sources.length > 2 && (
+                <span className="tooltip-sources-more">+{data.sources.length - 2} more</span>
+              )}
+            </div>
+          </div>
         )}
       </div>
     );
@@ -133,6 +181,8 @@ export const TimelineChart = ({
     type: 'historical' | 'present' | 'prediction';
     originalLabel?: string;
     prediction?: Prediction; // Store full prediction object
+    summary?: string; // Summary for historical/present entries
+    sources?: string[]; // Sources for historical/present entries
   }> = [];
 
   const presentDate = new Date(presentEntry.date);
@@ -146,6 +196,8 @@ export const TimelineChart = ({
       historicalValue: entry.value,
       predictionValue: null,
       type: 'historical',
+      summary: entry.summary,
+      sources: entry.sources,
     });
   });
 
@@ -156,6 +208,8 @@ export const TimelineChart = ({
     historicalValue: presentEntry.value,
     predictionValue: presentEntry.value, // Connect to predictions
     type: 'present',
+    summary: presentEntry.summary,
+    sources: presentEntry.sources,
   });
 
   // Add predictions with actual dates

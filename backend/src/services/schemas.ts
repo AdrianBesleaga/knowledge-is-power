@@ -28,12 +28,12 @@ export const JSON_SCHEMA = {
             type: 'array',
             items: {
               type: 'string',
-              format: 'uri',
             },
             description: 'Array of valid HTTP/HTTPS URLs from reputable sources',
           },
         },
         required: ['value', 'summary', 'sources'],
+        additionalProperties: false,
       },
       historical: {
         type: 'array',
@@ -62,15 +62,16 @@ export const JSON_SCHEMA = {
               type: 'array',
               items: {
                 type: 'string',
-                format: 'uri',
               },
               description: 'Array of valid HTTP/HTTPS URLs from reputable sources',
             },
           },
           required: ['date', 'value', 'eventType', 'summary', 'sources'],
+          additionalProperties: false,
         },
+        minItems: 10,
         maxItems: 40,
-        description: 'Array of historical events covering the past 10 years. CRITICAL: Maximum 4 events per year (40 total). Select only the most significant events that had the biggest impact on the value. Prioritize major price movements, market cycle turning points, and regulatory/fundamental events.',
+        description: 'Array of historical events covering the past 10 years. CRITICAL: Must contain at least 10 events, maximum 4 events per year (40 total). Select only the most significant events that had the biggest impact on the value. Prioritize major price movements, market cycle turning points, and regulatory/fundamental events.',
       },
       predictions: {
         type: 'array',
@@ -102,7 +103,6 @@ export const JSON_SCHEMA = {
                     type: 'array',
                     items: {
                       type: 'string',
-                      format: 'uri',
                     },
                     description: 'Array of valid HTTP/HTTPS URLs from recent news or analyst reports',
                   },
@@ -114,6 +114,7 @@ export const JSON_SCHEMA = {
                   },
                 },
                 required: ['title', 'predictedValue', 'summary', 'sources', 'confidenceScore'],
+                additionalProperties: false,
               },
               minItems: 3,
               maxItems: 3,
@@ -121,11 +122,14 @@ export const JSON_SCHEMA = {
             },
           },
           required: ['timeline', 'scenarios'],
+          additionalProperties: false,
         },
-        description: 'Array of predictions for different time intervals',
+        minItems: 11,
+        description: 'Array of predictions for different time intervals. CRITICAL: Must contain predictions for all 11 intervals: 1 month, 1 year, 2 years, 3 years, 4 years, 5 years, 6 years, 7 years, 8 years, 9 years, 10 years. Each interval must have exactly 3 scenarios.',
       },
     },
     required: ['valueLabel', 'current', 'historical', 'predictions'],
+    additionalProperties: false,
   },
 
   /**
@@ -164,7 +168,6 @@ export const JSON_SCHEMA = {
                     type: 'array',
                     items: {
                       type: 'string',
-                      format: 'uri',
                     },
                     description: 'Array of valid HTTP/HTTPS URLs',
                   },
@@ -210,7 +213,6 @@ export const JSON_SCHEMA = {
             type: 'array',
             items: {
               type: 'string',
-              format: 'uri',
             },
             description: 'Array of valid HTTP/HTTPS URLs from reputable sources',
           },
@@ -244,7 +246,6 @@ export const JSON_SCHEMA = {
               type: 'array',
               items: {
                 type: 'string',
-                format: 'uri',
               },
               description: 'Array of valid HTTP/HTTPS URLs',
             },
@@ -276,7 +277,6 @@ export const JSON_SCHEMA = {
         type: 'array',
         items: {
           type: 'string',
-          format: 'uri',
         },
         description: 'Array of valid HTTP/HTTPS URLs from reputable sources',
       },
@@ -311,7 +311,6 @@ export const JSON_SCHEMA = {
               type: 'array',
               items: {
                 type: 'string',
-                format: 'uri',
               },
               description: 'Array of valid HTTP/HTTPS URLs',
             },
@@ -365,7 +364,6 @@ export const JSON_SCHEMA = {
               type: 'array',
               items: {
                 type: 'string',
-                format: 'uri',
               },
               description: 'Array of valid HTTP/HTTPS URLs',
             },

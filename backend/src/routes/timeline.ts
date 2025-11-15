@@ -99,21 +99,23 @@ router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) 
 /**
  * GET /api/timeline/:slug
  * Retrieve a timeline by slug (public, optional auth)
+ * Supports optional ?version= query parameter to get specific version
  */
 router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { slug } = req.params;
+    const version = req.query.version ? parseInt(req.query.version as string, 10) : undefined;
 
     if (!slug) {
       res.status(400).json({ error: 'Slug is required' });
       return;
     }
 
-    console.log(`[API] Timeline retrieval request for slug: "${slug}"`);
-    const timeline = await timelineService.getTimelineBySlug(slug);
+    console.log(`[API] Timeline retrieval request for slug: "${slug}"${version ? `, version: ${version}` : ' (latest)'}`);
+    const timeline = await timelineService.getTimelineBySlug(slug, version);
 
     if (!timeline) {
-      console.log(`[API] Timeline not found for slug: "${slug}"`);
+      console.log(`[API] Timeline not found for slug: "${slug}"${version ? `, version: ${version}` : ''}`);
       res.status(404).json({ error: 'Timeline not found' });
       return;
     }
@@ -227,6 +229,7 @@ router.patch('/:slug/visibility', authenticateToken, async (req: AuthRequest, re
 /**
  * POST /api/timeline/:slug/reprocess
  * Reprocess timeline: Get current value and regenerate predictions (requires authentication, owner only)
+ * Returns the reprocessed data but does NOT save it automatically
  */
 router.post('/:slug/reprocess', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
@@ -266,8 +269,67 @@ router.post('/:slug/reprocess', authenticateToken, async (req: AuthRequest, res:
       existingTimeline.predictions
     );
 
-    // Update timeline with new present entry and predictions
-    const updatedTimeline = await timelineService.saveTimeline(
+    console.log(`[API] Timeline reprocess completed successfully (not saved yet)`);
+
+    res.json({
+      success: true,
+      presentEntry,
+      predictions,
+      previousValue: existingTimeline.presentEntry.value,
+      newValue: presentEntry.value,
+      valueChange: presentEntry.value - existingTimeline.presentEntry.value,
+    });
+  } catch (error) {
+    console.error('[API] Error reprocessing timeline:', error);
+    res.status(500).json({
+      error: 'Failed to reprocess timeline',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/timeline/:slug/save-version
+ * Save reprocessed timeline as a new version (requires authentication, owner only)
+ */
+router.post('/:slug/save-version', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { slug } = req.params;
+    const { presentEntry, predictions } = req.body;
+
+    if (!slug) {
+      res.status(400).json({ error: 'Slug is required' });
+      return;
+    }
+
+    if (!presentEntry || !predictions) {
+      res.status(400).json({ error: 'presentEntry and predictions are required' });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    console.log(`[API] Save timeline version request for slug: "${slug}" by user: ${req.user.uid}`);
+
+    // Get existing timeline
+    const existingTimeline = await timelineService.getTimelineBySlug(slug);
+    if (!existingTimeline) {
+      res.status(404).json({ error: 'Timeline not found' });
+      return;
+    }
+
+    // Check ownership
+    if (existingTimeline.userId !== req.user.uid) {
+      res.status(403).json({ error: 'Access denied. You can only save versions of your own timelines.' });
+      return;
+    }
+
+    // Save as new version
+    const { version, timeline } = await timelineService.saveTimelineVersion(
+      slug,
       existingTimeline.topic,
       existingTimeline.valueLabel,
       existingTimeline.pastEntries,
@@ -277,19 +339,66 @@ router.post('/:slug/reprocess', authenticateToken, async (req: AuthRequest, res:
       existingTimeline.isPublic
     );
 
-    console.log(`[API] Timeline reprocess completed successfully`);
+    console.log(`[API] Timeline version ${version} saved successfully`);
 
     res.json({
       success: true,
-      timeline: updatedTimeline,
+      version,
+      timeline,
       previousValue: existingTimeline.presentEntry.value,
       newValue: presentEntry.value,
       valueChange: presentEntry.value - existingTimeline.presentEntry.value,
     });
   } catch (error) {
-    console.error('[API] Error reprocessing timeline:', error);
+    console.error('[API] Error saving timeline version:', error);
     res.status(500).json({
-      error: 'Failed to reprocess timeline',
+      error: 'Failed to save timeline version',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /api/timeline/:slug/versions
+ * Get all versions for a timeline (requires authentication, owner only)
+ */
+router.get('/:slug/versions', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug) {
+      res.status(400).json({ error: 'Slug is required' });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    // Get existing timeline to check ownership
+    const existingTimeline = await timelineService.getTimelineBySlug(slug);
+    if (!existingTimeline) {
+      res.status(404).json({ error: 'Timeline not found' });
+      return;
+    }
+
+    // Check ownership
+    if (existingTimeline.userId !== req.user.uid) {
+      res.status(403).json({ error: 'Access denied. You can only view versions of your own timelines.' });
+      return;
+    }
+
+    const versions = await timelineService.getTimelineVersions(slug);
+
+    res.json({
+      success: true,
+      versions,
+    });
+  } catch (error) {
+    console.error('[API] Error getting timeline versions:', error);
+    res.status(500).json({
+      error: 'Failed to get timeline versions',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }

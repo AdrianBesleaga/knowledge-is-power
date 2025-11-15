@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
-import { generateTimeline, saveTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines } from '../services/api';
-import { TimelineAnalysis, TimelineEntry, Prediction } from '../types/timeline';
+import { generateTimeline, saveTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions } from '../services/api';
+import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
 import { TimelineSlider } from '../components/TimelineSlider';
 import { TimelineChart } from '../components/TimelineChart';
 import { PredictionCard } from '../components/PredictionCard';
@@ -24,6 +24,11 @@ export const PredictionPage = () => {
   const [reprocessing, setReprocessing] = useState(false);
   const [savedTimelines, setSavedTimelines] = useState<TimelineAnalysis[]>([]);
   const [loadingTimelines, setLoadingTimelines] = useState(false);
+  const [reprocessedData, setReprocessedData] = useState<{ presentEntry: TimelineEntry; predictions: Prediction[] } | null>(null);
+  const [versions, setVersions] = useState<TimelineVersion[]>([]);
+  const [loadingVersions, setLoadingVersions] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+  const [savingVersion, setSavingVersion] = useState(false);
 
   // Load saved timelines when no slug and user is logged in
   useEffect(() => {
@@ -50,6 +55,41 @@ export const PredictionPage = () => {
     loadSavedTimelines();
   }, [slug, user, getIdToken]);
 
+  // Load versions when timeline is loaded and user owns it
+  useEffect(() => {
+    const loadVersions = async () => {
+      if (!slug || !user || !timeline || timeline.userId !== user.uid) {
+        if (!slug || !user) {
+          setVersions([]);
+          setSelectedVersion(null);
+        }
+        return;
+      }
+
+      try {
+        setLoadingVersions(true);
+        const token = await getIdToken();
+        if (token) {
+          setAuthToken(token);
+        }
+        const result = await getTimelineVersions(slug);
+        setVersions(result.versions);
+        // Set selected version to latest if not already set
+        if (result.versions.length > 0 && selectedVersion === null) {
+          setSelectedVersion(result.versions[0].version);
+        }
+      } catch (err: any) {
+        // Silently fail - user might not own this timeline
+        console.error('Error loading versions:', err);
+        setVersions([]);
+      } finally {
+        setLoadingVersions(false);
+      }
+    };
+
+    loadVersions();
+  }, [slug, user, timeline, getIdToken]);
+
   // Load timeline by slug if provided
   useEffect(() => {
     const loadTimeline = async () => {
@@ -58,6 +98,7 @@ export const PredictionPage = () => {
         setTimeline(null);
         setTopic('');
         setSelectedPeriod('present');
+        setReprocessedData(null);
         return;
       }
 
@@ -72,10 +113,13 @@ export const PredictionPage = () => {
           }
         }
 
-        const loadedTimeline = await getTimelineBySlug(slug);
+        // Load timeline with selected version (or latest if none selected)
+        const versionToLoad = selectedVersion || undefined;
+        const loadedTimeline = await getTimelineBySlug(slug, versionToLoad);
         setTimeline(loadedTimeline);
         setTopic(loadedTimeline.topic);
         setSelectedPeriod('present');
+        setReprocessedData(null); // Clear any reprocessed data when loading a timeline
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load timeline');
         console.error('Error loading timeline:', err);
@@ -85,7 +129,7 @@ export const PredictionPage = () => {
     };
 
     loadTimeline();
-  }, [slug, user, getIdToken]);
+  }, [slug, user, getIdToken, selectedVersion]);
 
   // Auto-generate timeline after successful authentication if there's a pending topic
   useEffect(() => {
@@ -225,9 +269,11 @@ export const PredictionPage = () => {
 
       const result = await reprocessTimeline(slug);
       
-      // Update timeline with new data
-      setTimeline(result.timeline);
-      setSelectedPeriod('present');
+      // Store reprocessed data (don't update timeline yet - user needs to save as version)
+      setReprocessedData({
+        presentEntry: result.presentEntry,
+        predictions: result.predictions,
+      });
 
       // Show success message
       const changePercent = timeline.presentEntry.value !== 0
@@ -242,11 +288,79 @@ export const PredictionPage = () => {
     }
   };
 
+  const handleSaveVersion = async () => {
+    if (!user || !timeline || !slug || !reprocessedData) {
+      return;
+    }
+
+    setSavingVersion(true);
+    setError(null);
+
+    try {
+      const token = await getIdToken();
+      if (token) {
+        setAuthToken(token);
+      }
+
+      const result = await saveTimelineVersion(
+        slug,
+        reprocessedData.presentEntry,
+        reprocessedData.predictions
+      );
+      
+      // Update timeline with new version
+      setTimeline(result.timeline);
+      setReprocessedData(null);
+      setSelectedVersion(result.version);
+      setSelectedPeriod('present');
+
+      // Reload versions
+      const versionsResult = await getTimelineVersions(slug);
+      setVersions(versionsResult.versions);
+
+      console.log(`Saved as version ${result.version}`);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to save version');
+      console.error('Error saving version:', err);
+    } finally {
+      setSavingVersion(false);
+    }
+  };
+
+  const handleVersionChange = async (version: number) => {
+    if (!slug) return;
+    
+    setSelectedVersion(version);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = await getIdToken();
+      if (token) {
+        setAuthToken(token);
+      }
+
+      const loadedTimeline = await getTimelineBySlug(slug, version);
+      setTimeline(loadedTimeline);
+      setSelectedPeriod('present');
+      setReprocessedData(null);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to load version');
+      console.error('Error loading version:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getCurrentPeriodData = (): TimelineEntry | Prediction | null => {
     if (!timeline) return null;
 
+    // Use reprocessed data if available, otherwise use timeline data
+    const currentPresentEntry = reprocessedData?.presentEntry || timeline.presentEntry;
+    const currentPredictions = reprocessedData?.predictions || timeline.predictions;
+
     if (selectedPeriod === 'present') {
-      return timeline.presentEntry;
+      return currentPresentEntry;
     }
 
     // Check if it's a past entry
@@ -258,7 +372,7 @@ export const PredictionPage = () => {
     }
 
     // Check if it's a prediction
-    const prediction = timeline.predictions.find(
+    const prediction = currentPredictions.find(
       (pred) => pred.timeline === selectedPeriod
     );
     if (prediction) {
@@ -359,23 +473,59 @@ export const PredictionPage = () => {
               <div>
                 <h3>{timeline.topic}</h3>
                 <p className="value-label">Tracking: {timeline.valueLabel}</p>
+                {timeline.version && (
+                  <p className="version-label">Version {timeline.version}</p>
+                )}
               </div>
               <div className="timeline-actions">
-                {slug && (
-                  <button 
-                    className="btn-secondary" 
-                    onClick={handleReprocess}
-                    disabled={reprocessing}
-                  >
-                    {reprocessing ? (
-                      <>
-                        <div className="button-spinner-small"></div>
-                        Reprocessing...
-                      </>
+                {slug && user && timeline.userId === user.uid && (
+                  <>
+                    {reprocessedData ? (
+                      <button 
+                        className="btn-primary" 
+                        onClick={handleSaveVersion}
+                        disabled={savingVersion}
+                      >
+                        {savingVersion ? (
+                          <>
+                            <div className="button-spinner-small"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          'Save as Version'
+                        )}
+                      </button>
                     ) : (
-                      'Reprocess'
+                      <button 
+                        className="btn-secondary" 
+                        onClick={handleReprocess}
+                        disabled={reprocessing}
+                      >
+                        {reprocessing ? (
+                          <>
+                            <div className="button-spinner-small"></div>
+                            Reprocessing...
+                          </>
+                        ) : (
+                          'Reprocess'
+                        )}
+                      </button>
                     )}
-                  </button>
+                    {versions.length > 0 && (
+                      <select
+                        className="version-selector"
+                        value={selectedVersion || timeline.version || 1}
+                        onChange={(e) => handleVersionChange(parseInt(e.target.value, 10))}
+                        disabled={loadingVersions || loading}
+                      >
+                        {versions.map((v) => (
+                          <option key={v.version} value={v.version}>
+                            Version {v.version} - {new Date(v.createdAt).toLocaleDateString()} ({v.presentValue.toLocaleString()})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </>
                 )}
                 {!slug && (
                   <button className="btn-primary" onClick={handleSaveTimeline}>
@@ -388,8 +538,8 @@ export const PredictionPage = () => {
             <div className="timeline-chart-container">
               <TimelineChart
                 pastEntries={timeline.pastEntries}
-                presentEntry={timeline.presentEntry}
-                predictions={timeline.predictions}
+                presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
+                predictions={reprocessedData?.predictions || timeline.predictions}
                 valueLabel={timeline.valueLabel}
               />
             </div>
@@ -397,8 +547,8 @@ export const PredictionPage = () => {
             <div className="timeline-slider-container">
               <TimelineSlider
                 pastEntries={timeline.pastEntries}
-                presentEntry={timeline.presentEntry}
-                predictions={timeline.predictions}
+                presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
+                predictions={reprocessedData?.predictions || timeline.predictions}
                 selectedPeriod={selectedPeriod}
                 onPeriodChange={setSelectedPeriod}
               />

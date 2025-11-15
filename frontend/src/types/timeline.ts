@@ -34,6 +34,13 @@ export interface TimelineAnalysis {
   userId: string | null;
   isPublic: boolean;
   viewCount: number;
+  version?: number; // Version number (defaults to 1)
+}
+
+export interface TimelineVersion {
+  version: number;
+  createdAt: string; // ISO date string
+  presentValue: number;
 }
 
 export interface GenerateTimelineRequest {

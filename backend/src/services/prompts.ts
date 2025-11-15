@@ -346,7 +346,14 @@ Return JSON format: { "entries": [{ "date": "YYYY-MM-DD", "value": number, "even
    * Generate complete timeline analysis prompt
    */
   generateTimelineAnalysis: (topic: string, currentDate: Date, startDate: Date, intervalsList: string): string => {
-    return `You have FULL WEB ACCESS. Complete a comprehensive timeline analysis for "${topic}" in a single response.
+    return `Complete a comprehensive timeline analysis for "${topic}" using your knowledge of market data, historical events, and current trends.
+
+CRITICAL REQUIREMENTS:
+- You MUST provide data for ALL required fields
+- The "historical" array MUST contain at least 10-20 significant events (up to 40 maximum, 4 per year)
+- The "predictions" array MUST contain predictions for ALL ${intervalsList.split('\n').length} intervals listed below
+- Each prediction interval MUST have exactly 3 scenarios
+- Use your training data knowledge of historical events, market data, and trends
 
 TASK 1: DETERMINE VALUE LABEL
 - Determine what metric/value is most relevant to track for "${topic}"
@@ -354,13 +361,12 @@ TASK 1: DETERMINE VALUE LABEL
 - Return a short label (2-5 words)
 
 TASK 2: GET CURRENT STATE
-- Search for the EXACT current value as of ${currentDate.toISOString().split('T')[0]}
-- Use official sources, market data providers, or current news
+- Provide the approximate current value as of ${currentDate.toISOString().split('T')[0]} based on your knowledge
 - Provide brief summary (2-3 sentences) of current market conditions
-- Include 2-3 VALID HTTP/HTTPS URLs from reputable sources
+- Include 2-3 realistic HTTP/HTTPS URLs from reputable sources (e.g., coinmarketcap.com, finance.yahoo.com, etc.)
 
 TASK 3: RESEARCH HISTORICAL DATA (${startDate.getFullYear()} to ${currentDate.getFullYear()})
-Find the BIGGEST EVENTS that had the largest impact. Maximum 4 events per year (40 total).
+You MUST find at least 10-20 of the BIGGEST EVENTS that had the largest impact. Maximum 4 events per year (40 total).
 
 Focus on:
 1. MAJOR PRICE MOVEMENTS: Largest pumps/dumps with exact dates, values, and catalysts
@@ -372,23 +378,25 @@ For each event provide:
 - PRECISE value at that time
 - Event type: "pump", "dump", "bull_market_start", "bull_market_end", "bear_market_start", "bear_market_end", or "major_event"
 - Detailed summary (3-4 sentences) explaining what happened, why, and impact
-- 2-3 VALID HTTP/HTTPS URLs from reputable sources
+- 2-3 realistic HTTP/HTTPS URLs from reputable sources
 
-TASK 4: GENERATE PREDICTIONS
-For EACH of these intervals: ${intervalsList}
+TASK 4: GENERATE PREDICTIONS (REQUIRED FOR ALL INTERVALS)
+For EACH of these intervals, you MUST provide exactly 3 scenarios: ${intervalsList}
 
-Create 3-5 realistic scenarios based on:
+Create 3 realistic scenarios per interval based on:
 - Current market sentiment and technical indicators
 - Economic data (GDP, inflation, interest rates)
 - Industry news and regulatory developments
 - Historical patterns and cycle analysis
 
 For each scenario provide:
-- DESCRIPTIVE title (e.g., "Strong Bull Market Recovery", "Regulatory Impact")
+- DESCRIPTIVE title (e.g., "Strong Bull Market Recovery", "Regulatory Impact", "Neutral Growth")
 - SPECIFIC predicted value (realistic number)
 - DETAILED analysis (3-4 sentences) with drivers and evidence
-- 2-3 VALID HTTP/HTTPS URLs from recent news or analyst reports
+- 2-3 realistic HTTP/HTTPS URLs from recent news or analyst reports
 - CONFIDENCE score (0-100)
+
+IMPORTANT: The "historical" array cannot be empty. The "predictions" array must have entries for ALL intervals listed above. Each prediction must have exactly 3 scenarios.
 
 Return in this EXACT JSON format:
 {

@@ -93,6 +93,7 @@ export interface TimelineAnalysis {
   userId: string | null;
   isPublic: boolean;
   viewCount: number;
+  version?: number; // Version number (defaults to 1)
 }
 
 export interface GenerateTimelineRequest {

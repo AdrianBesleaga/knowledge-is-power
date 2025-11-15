@@ -140,6 +140,33 @@
   margin: 0;
 }
 
+.version-label {
+  color: #667eea;
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0;
+  font-weight: 500;
+}
+
+.version-selector {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.version-selector:hover:not(:disabled) {
+  border-color: #667eea;
+}
+
+.version-selector:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-primary {
   background: #667eea;
   color: white;

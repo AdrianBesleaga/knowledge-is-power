@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { KnowledgeGraph, GraphNode, GraphEdge } from '../types/graph';
-import { TimelineAnalysis, TimelineEntry, Prediction } from '../types/timeline';
+import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -191,10 +191,6 @@ export const saveTimeline = async (
   return response.data;
 };
 
-export const getTimelineBySlug = async (slug: string): Promise<TimelineAnalysis> => {
-  const response = await api.get(`/api/timeline/${slug}`);
-  return response.data.timeline;
-};
 
 export const getTimelineByTopic = async (
   topic: string,
@@ -227,12 +223,52 @@ export const reprocessTimeline = async (
   slug: string
 ): Promise<{
   success: boolean;
-  timeline: TimelineAnalysis;
+  presentEntry: TimelineEntry;
+  predictions: Prediction[];
   previousValue: number;
   newValue: number;
   valueChange: number;
 }> => {
   const response = await api.post(`/api/timeline/${slug}/reprocess`);
   return response.data;
+};
+
+export const saveTimelineVersion = async (
+  slug: string,
+  presentEntry: TimelineEntry,
+  predictions: Prediction[]
+): Promise<{
+  success: boolean;
+  version: number;
+  timeline: TimelineAnalysis;
+  previousValue: number;
+  newValue: number;
+  valueChange: number;
+}> => {
+  const response = await api.post(`/api/timeline/${slug}/save-version`, {
+    presentEntry,
+    predictions,
+  });
+  return response.data;
+};
+
+export const getTimelineVersions = async (
+  slug: string
+): Promise<{
+  success: boolean;
+  versions: Array<{
+    version: number;
+    createdAt: string;
+    presentValue: number;
+  }>;
+}> => {
+  const response = await api.get(`/api/timeline/${slug}/versions`);
+  return response.data;
+};
+
+export const getTimelineBySlug = async (slug: string, version?: number): Promise<TimelineAnalysis> => {
+  const params = version ? { version } : {};
+  const response = await api.get(`/api/timeline/${slug}`, { params });
+  return response.data.timeline;
 };
 

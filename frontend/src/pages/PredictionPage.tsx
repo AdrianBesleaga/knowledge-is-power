@@ -198,7 +198,7 @@ export const PredictionPage = () => {
 
 
   const handleReprocess = async () => {
-    if (!user || !timeline || !slug) {
+    if (!user || !timeline || !slug || timeline.userId !== user.uid) {
       return;
     }
 
@@ -233,7 +233,7 @@ export const PredictionPage = () => {
   };
 
   const handleSaveVersion = async () => {
-    if (!user || !timeline || !slug || !reprocessedData) {
+    if (!user || !timeline || !slug || !reprocessedData || timeline.userId !== user.uid) {
       return;
     }
 
@@ -309,7 +309,7 @@ export const PredictionPage = () => {
 
   // Handle timeline deletion
   const handleDeleteTimeline = async () => {
-    if (!user || !timeline || !slug || timeline.isPublic) {
+    if (!user || !timeline || !slug || timeline.isPublic || timeline.userId !== user.uid) {
       return;
     }
 

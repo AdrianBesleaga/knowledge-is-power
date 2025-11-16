@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SearchBar } from '../components/SearchBar';
 import { generateGraph, saveGraph, setAuthToken, getPopularGraphs, getPopularTimelines } from '../services/api';
 import { KnowledgeGraph } from '../components/KnowledgeGraph';
 import { NodeDetailPanel } from '../components/NodeDetailPanel';
@@ -103,43 +102,6 @@ export const HomePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, pendingTopic, showAuthModal]);
 
-  const handleSearch = async (searchTopic: string) => {
-    // Check if user is authenticated
-    if (!user) {
-      setPendingTopic(searchTopic);
-      setShowAuthModal(true);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setTopic(searchTopic);
-    setSummary('');
-    setSavedUrl(null);
-
-    try {
-      // Ensure auth token is set
-      const token = await getIdToken();
-      if (token) {
-        setAuthToken(token);
-      }
-
-      const result = await generateGraph(searchTopic);
-      setSummary(result.summary);
-      setNodes(result.nodes);
-      setEdges(result.edges);
-    } catch (err: any) {
-      if (err.response?.status === 401) {
-        setError('Please sign in to generate graphs');
-        setShowAuthModal(true);
-      } else {
-        setError(err.response?.data?.error || 'Failed to generate knowledge graph');
-      }
-      console.error('Error generating graph:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSaveGraph = async () => {
     if (!user) {
@@ -179,6 +141,16 @@ export const HomePage = () => {
               <span className="hero-highlight">
                 Crystal-Clear Insights
                 <div className="highlight-glow"></div>
+                <div className="fire-particles">
+                  <div className="fire-particle"></div>
+                  <div className="fire-particle"></div>
+                  <div className="fire-particle"></div>
+                  <div className="fire-particle"></div>
+                  <div className="fire-particle"></div>
+                  <div className="fire-particle"></div>
+                  <div className="fire-particle"></div>
+                  <div className="fire-particle"></div>
+                </div>
               </span>
             </h1>
 
@@ -202,10 +174,6 @@ export const HomePage = () => {
               </div>
             </div>
 
-            <div className="search-section">
-              <SearchBar onSearch={handleSearch} loading={loading} />
-            </div>
-
             {!user && (
               <p className="hero-auth-hint">
                 <span className="auth-icon">✨</span>
@@ -218,55 +186,6 @@ export const HomePage = () => {
                 {error}
               </div>
             )}
-          </div>
-        </div>
-
-        <div className="features-section">
-          <div className="features-header">
-            <h2 className="features-title">
-              Intelligence At Your Fingertips
-            </h2>
-            <p className="features-subtitle">
-              Powerful AI tools that turn information overload into clarity
-            </p>
-          </div>
-
-          <div className="features-container">
-            <div className="feature-card">
-              <div className="feature-icon-large">🧠</div>
-              <h3>AI-Powered Analysis</h3>
-              <p>Advanced algorithms extract key insights from complex topics, connecting the dots between disparate pieces of information automatically.</p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-large">🎨</div>
-              <h3>Beautiful Visualizations</h3>
-              <p>Interactive knowledge graphs that make complex relationships crystal clear. See the big picture and dive into details with a click.</p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-large">🔮</div>
-              <h3>Smart Predictions</h3>
-              <p>AI-generated forecasts based on data-driven analysis. Anticipate trends and make informed decisions with confidence.</p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-large">⚡</div>
-              <h3>Instant Results</h3>
-              <p>What takes hours of research happens in seconds. Get comprehensive analysis delivered faster than you can make coffee.</p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-large">🔗</div>
-              <h3>Share Anywhere</h3>
-              <p>Generate shareable links in one click. Collaborate with your team or present insights to stakeholders effortlessly.</p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon-large">🎯</div>
-              <h3>Always Accurate</h3>
-              <p>Every insight is fact-checked and verified. No hallucinations, no guesswork - just reliable intelligence you can trust.</p>
-            </div>
           </div>
         </div>
 
@@ -408,6 +327,55 @@ export const HomePage = () => {
                   <p>Be the first to create and share a knowledge graph!</p>
                 </div>
               )}
+            </div>
+
+            <div className="features-section">
+              <div className="features-header">
+                <h2 className="features-title">
+                  Intelligence At Your Fingertips
+                </h2>
+                <p className="features-subtitle">
+                  Powerful AI tools that turn information overload into clarity
+                </p>
+              </div>
+
+              <div className="features-container">
+                <div className="feature-card">
+                  <div className="feature-icon-large">🧠</div>
+                  <h3>AI-Powered Analysis</h3>
+                  <p>Advanced algorithms extract key insights from complex topics, connecting the dots between disparate pieces of information automatically.</p>
+                </div>
+
+                <div className="feature-card">
+                  <div className="feature-icon-large">🎨</div>
+                  <h3>Beautiful Visualizations</h3>
+                  <p>Interactive knowledge graphs that make complex relationships crystal clear. See the big picture and dive into details with a click.</p>
+                </div>
+
+                <div className="feature-card">
+                  <div className="feature-icon-large">🔮</div>
+                  <h3>Smart Predictions</h3>
+                  <p>AI-generated forecasts based on data-driven analysis. Anticipate trends and make informed decisions with confidence.</p>
+                </div>
+
+                <div className="feature-card">
+                  <div className="feature-icon-large">⚡</div>
+                  <h3>Instant Results</h3>
+                  <p>What takes hours of research happens in seconds. Get comprehensive analysis delivered faster than you can make coffee.</p>
+                </div>
+
+                <div className="feature-card">
+                  <div className="feature-icon-large">🔗</div>
+                  <h3>Share Anywhere</h3>
+                  <p>Generate shareable links in one click. Collaborate with your team or present insights to stakeholders effortlessly.</p>
+                </div>
+
+                <div className="feature-card">
+                  <div className="feature-icon-large">🎯</div>
+                  <h3>Always Accurate</h3>
+                  <p>Every insight is fact-checked and verified. No hallucinations, no guesswork - just reliable intelligence you can trust.</p>
+                </div>
+              </div>
             </div>
           </>
         )}

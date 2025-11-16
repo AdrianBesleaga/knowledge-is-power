@@ -6,10 +6,19 @@
   transition: all 0.2s;
 }
 
+.dark .prediction-card {
+  background: rgb(31, 41, 55);
+  border-color: rgb(55, 65, 81);
+}
+
 .prediction-card:hover {
   border-color: #667eea;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
   transform: translateY(-2px);
+}
+
+.dark .prediction-card:hover {
+  border-color: rgb(59, 130, 246);
 }
 
 .prediction-card-header {
@@ -26,6 +35,10 @@
   margin: 0;
   color: #1a1a1a;
   flex: 1;
+}
+
+.dark .scenario-title {
+  color: white;
 }
 
 .confidence-badge {
@@ -60,9 +73,18 @@
   border-radius: 8px;
 }
 
+.dark .predicted-value {
+  background: rgb(17, 24, 39);
+  color: rgb(209, 213, 219);
+}
+
 .predicted-value strong {
   color: #667eea;
   font-size: 1.25rem;
+}
+
+.dark .predicted-value strong {
+  color: rgb(59, 130, 246);
 }
 
 .scenario-summary {
@@ -72,10 +94,18 @@
   margin: 0 0 1rem;
 }
 
+.dark .scenario-summary {
+  color: rgb(209, 213, 219);
+}
+
 .scenario-sources {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #e5e7eb;
+}
+
+.dark .scenario-sources {
+  border-top-color: rgb(55, 65, 81);
 }
 
 .scenario-sources h6 {
@@ -85,6 +115,10 @@
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.dark .scenario-sources h6 {
+  color: rgb(156, 163, 175);
 }
 
 .scenario-sources ul {
@@ -102,6 +136,10 @@
   color: #667eea;
   text-decoration: none;
   word-break: break-all;
+}
+
+.dark .scenario-sources a {
+  color: rgb(59, 130, 246);
 }
 
 .scenario-sources a:hover {

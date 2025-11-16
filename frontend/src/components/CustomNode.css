@@ -16,6 +16,10 @@
   position: relative;
 }
 
+.dark .custom-node {
+  background: rgb(17, 24, 39);
+}
+
 .custom-node:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -40,12 +44,20 @@
   line-height: 1.3;
 }
 
+.dark .node-label {
+  color: white;
+}
+
 .node-impact {
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .node-impact {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Node variants */

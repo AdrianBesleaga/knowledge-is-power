@@ -27,11 +27,19 @@
   font-weight: 600;
 }
 
+.dark .chart-header h4 {
+  color: white;
+}
+
 .chart-subtitle {
   font-size: 1rem;
   color: #667eea;
   margin: 0;
   font-weight: 500;
+}
+
+.dark .chart-subtitle {
+  color: rgb(59, 130, 246);
 }
 
 .sources-toggle {
@@ -50,10 +58,22 @@
   white-space: nowrap;
 }
 
+.dark .sources-toggle {
+  background: rgb(17, 24, 39);
+  border-color: rgb(59, 130, 246);
+  color: rgb(59, 130, 246);
+}
+
 .sources-toggle:hover {
   background: #f0f4ff;
   border-color: #5568d3;
   color: #5568d3;
+}
+
+.dark .sources-toggle:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgb(37, 99, 235);
+  color: rgb(37, 99, 235);
 }
 
 .sources-toggle:active {
@@ -78,6 +98,10 @@
   fill: #666;
 }
 
+.dark .recharts-cartesian-axis-tick-value {
+  fill: rgb(156, 163, 175);
+}
+
 .recharts-legend-wrapper {
   padding-top: 1rem;
 }
@@ -85,6 +109,10 @@
 .recharts-legend-item-text {
   font-size: 0.875rem;
   color: #333;
+}
+
+.dark .recharts-legend-item-text {
+  color: rgb(209, 213, 219);
 }
 
 .recharts-tooltip-wrapper {
@@ -101,15 +129,28 @@
   overflow: visible !important;
 }
 
+.dark .recharts-default-tooltip {
+  background: rgba(17, 24, 39, 0.98) !important;
+  border: 1px solid rgb(55, 65, 81) !important;
+}
+
 .recharts-tooltip-label {
   font-weight: 600;
   color: #1a1a1a;
   margin-bottom: 0.5rem;
 }
 
+.dark .recharts-tooltip-label {
+  color: white;
+}
+
 .recharts-tooltip-item {
   color: #666;
   font-size: 0.875rem;
+}
+
+.dark .recharts-tooltip-item {
+  color: rgb(209, 213, 219);
 }
 
 /* Custom tooltip styling */
@@ -126,10 +167,19 @@
   overflow: visible;
 }
 
+.dark .custom-tooltip {
+  background: rgb(17, 24, 39);
+  border-color: rgb(55, 65, 81);
+}
+
 .tooltip-header {
   margin-bottom: 0.5rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.dark .tooltip-header {
+  border-bottom-color: rgb(55, 65, 81);
 }
 
 .tooltip-label {
@@ -138,6 +188,10 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.dark .tooltip-label {
+  color: rgb(59, 130, 246);
 }
 
 .tooltip-value-container {
@@ -161,6 +215,10 @@
   border-top: 1px solid #e5e7eb;
 }
 
+.dark .tooltip-summary-section {
+  border-top-color: rgb(55, 65, 81);
+}
+
 .tooltip-summary-text {
   margin: 0;
   font-size: 0.7rem;
@@ -172,6 +230,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
+}
+
+.dark .tooltip-summary-text {
+  color: rgb(156, 163, 175);
 }
 
 
@@ -221,6 +283,11 @@
   max-width: 600px;
 }
 
+.dark .prediction-inline-display {
+  background: rgb(17, 24, 39);
+  border-color: rgb(55, 65, 81);
+}
+
 .prediction-inline-header {
   display: flex;
   justify-content: space-between;
@@ -230,12 +297,20 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+.dark .prediction-inline-header {
+  border-bottom-color: rgb(55, 65, 81);
+}
+
 .prediction-inline-label {
   font-size: 0.75rem;
   color: #667eea;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.dark .prediction-inline-label {
+  color: rgb(59, 130, 246);
 }
 
 .prediction-inline-view-details {

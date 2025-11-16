@@ -26,6 +26,10 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
+.dark .node-detail-panel {
+  background: rgb(17, 24, 39);
+}
+
 .panel-close {
   position: absolute;
   top: 1.5rem;
@@ -45,9 +49,18 @@
   transition: all 0.2s;
 }
 
+.dark .panel-close {
+  color: rgb(156, 163, 175);
+}
+
 .panel-close:hover {
   background: #f0f0f0;
   color: #333;
+}
+
+.dark .panel-close:hover {
+  background: rgb(55, 65, 81);
+  color: white;
 }
 
 .panel-header {
@@ -61,6 +74,10 @@
   font-size: 1.75rem;
 }
 
+.dark .panel-header h2 {
+  color: white;
+}
+
 .category-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
@@ -72,11 +89,20 @@
   text-transform: capitalize;
 }
 
+.dark .category-badge {
+  background: rgb(55, 65, 81);
+  color: rgb(209, 213, 219);
+}
+
 .impact-section {
   margin-bottom: 2rem;
   padding: 1.5rem;
   background: #f9fafb;
   border-radius: 12px;
+}
+
+.dark .impact-section {
+  background: rgb(31, 41, 55);
 }
 
 .impact-bar-container {
@@ -90,6 +116,10 @@
   background: #e5e7eb;
   border-radius: 6px;
   overflow: hidden;
+}
+
+.dark .impact-bar-bg {
+  background: rgb(55, 65, 81);
 }
 
 .impact-bar-fill {
@@ -124,16 +154,28 @@
   font-size: 1.1rem;
 }
 
+.dark .panel-section h3 {
+  color: white;
+}
+
 .panel-section p {
   margin: 0;
   color: #666;
   line-height: 1.6;
 }
 
+.dark .panel-section p {
+  color: rgb(209, 213, 219);
+}
+
 .sources-list {
   margin: 0;
   padding-left: 1.5rem;
   color: #666;
+}
+
+.dark .sources-list {
+  color: rgb(209, 213, 219);
 }
 
 .sources-list li {
@@ -148,9 +190,17 @@
   transition: color 0.2s;
 }
 
+.dark .source-link {
+  color: rgb(59, 130, 246);
+}
+
 .source-link:hover {
   color: #1d4ed8;
   text-decoration: underline;
+}
+
+.dark .source-link:hover {
+  color: rgb(147, 197, 253);
 }
 
 .sources-list li:last-child {

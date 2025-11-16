@@ -7,30 +7,34 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 1rem;
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: rgb(17, 24, 39);
+  border: 2px solid rgb(55, 65, 81);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
   font-size: 0.95rem;
   font-weight: 500;
-  color: #333;
+  color: rgb(229, 231, 235);
 }
+
 
 .user-profile-button:hover {
-  border-color: #667eea;
-  background: #f9fafb;
+  border-color: rgb(59, 130, 246);
+  background: rgb(31, 41, 55);
 }
+
 
 .user-profile-button.guest {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: rgb(59, 130, 246);
+  color: rgb(59, 130, 246);
 }
 
+
 .user-profile-button.guest:hover {
-  background: #667eea;
+  background: rgb(59, 130, 246);
   color: white;
 }
+
 
 .user-avatar {
   width: 36px;
@@ -48,9 +52,10 @@
 
 .user-avatar.guest {
   background: transparent;
-  color: #667eea;
-  border: 2px solid #667eea;
+  color: rgb(59, 130, 246);
+  border: 2px solid rgb(59, 130, 246);
 }
+
 
 .user-profile-button.guest:hover .user-avatar.guest {
   color: white;
@@ -63,13 +68,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: rgb(229, 231, 235);
 }
+
 
 .dropdown-arrow {
   transition: transform 0.2s;
-  color: #666;
+  color: rgb(209, 213, 219);
   flex-shrink: 0;
 }
+
 
 .dropdown-arrow.open {
   transform: rotate(180deg);
@@ -79,15 +87,16 @@
   position: absolute;
   top: calc(100% + 0.5rem);
   right: 0;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: rgb(17, 24, 39);
+  border: 1px solid rgb(55, 65, 81);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   min-width: 240px;
   z-index: 1000;
   animation: slideDown 0.2s ease;
   overflow: hidden;
 }
+
 
 @keyframes slideDown {
   from {
@@ -105,9 +114,10 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: rgb(31, 41, 55);
+  border-bottom: 1px solid rgb(55, 65, 81);
 }
+
 
 .dropdown-avatar {
   width: 40px;
@@ -130,27 +140,30 @@
 
 .dropdown-name {
   font-weight: 600;
-  color: #1a1a1a;
+  color: rgb(229, 231, 235);
   font-size: 0.95rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+
 .dropdown-email {
   font-size: 0.8rem;
-  color: #666;
+  color: rgb(209, 213, 219);
   margin-top: 0.25rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+
 .dropdown-divider {
   height: 1px;
-  background: #e5e7eb;
+  background: rgb(55, 65, 81);
   margin: 0.5rem 0;
 }
+
 
 .dropdown-item {
   width: 100%;
@@ -163,22 +176,26 @@
   text-align: left;
   cursor: pointer;
   font-size: 0.95rem;
-  color: #333;
+  color: rgb(229, 231, 235);
   transition: background 0.2s;
 }
 
+
 .dropdown-item:hover {
-  background: #f9fafb;
+  background: rgb(31, 41, 55);
 }
+
 
 .dropdown-item svg {
   flex-shrink: 0;
-  color: #666;
+  color: rgb(209, 213, 219);
 }
 
+
 .dropdown-item:hover svg {
-  color: #667eea;
+  color: rgb(59, 130, 246);
 }
+
 
 @media (max-width: 768px) {
   .user-name {

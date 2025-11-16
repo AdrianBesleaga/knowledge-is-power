@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 
+/* Ensure all page containers inherit the app background */
+[class$='-page'] {
+  background: transparent;
+}
+
 /* Glass morphism utilities */
 .glass {
   backdrop-filter: blur(16px);

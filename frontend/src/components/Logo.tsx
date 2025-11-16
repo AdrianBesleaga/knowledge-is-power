@@ -18,7 +18,7 @@ export const Logo = ({ showText = true, onClick }: LogoProps) => {
       {/* Modern minimalist icon */}
       <div className="relative">
         <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary-500 to-accent-600 opacity-20 blur-xl group-hover:opacity-30 transition-opacity" />
-        <div className="relative w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-accent-600 flex items-center justify-center">
+        <div className="relative w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-accent-600 dark:from-primary-600 dark:to-accent-700 flex items-center justify-center">
           <Network className="w-6 h-6 text-white" strokeWidth={2.5} />
         </div>
       </div>

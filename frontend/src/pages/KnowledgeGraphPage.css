@@ -1,6 +1,5 @@
 .knowledge-graph-page {
   flex: 1;
-  background: linear-gradient(to bottom, #f9fafb, #ffffff);
 }
 
 .knowledge-graph-main {
@@ -568,3 +567,4 @@
     font-size: 1.25rem;
   }
 }
+

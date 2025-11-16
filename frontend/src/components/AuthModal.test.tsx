@@ -22,11 +22,12 @@ describe('AuthModal', () => {
   });
 
   it('should not render when isOpen is false', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={false} onClose={mockOnClose} />
     );
 
-    expect(container.firstChild).toBeNull();
+    // Modal is rendered via Portal - check document.body doesn't have modal
+    expect(document.body.querySelector('.modal-overlay')).toBeNull();
   });
 
   it('should render when isOpen is true', () => {
@@ -36,7 +37,7 @@ describe('AuthModal', () => {
   });
 
   it('should have z-index of 9999 on modal overlay', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -49,7 +50,7 @@ describe('AuthModal', () => {
   });
 
   it('should have fixed positioning on modal overlay', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -64,7 +65,7 @@ describe('AuthModal', () => {
   });
 
   it('should center modal content using flexbox', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -77,7 +78,7 @@ describe('AuthModal', () => {
   });
 
   it('should have proper modal content positioning', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -89,7 +90,7 @@ describe('AuthModal', () => {
   });
 
   it('should have max-height to prevent overflow', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -102,7 +103,7 @@ describe('AuthModal', () => {
 
   it('should close modal when clicking overlay', async () => {
     const user = userEvent.setup();
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -115,7 +116,7 @@ describe('AuthModal', () => {
 
   it('should not close modal when clicking modal content', async () => {
     const user = userEvent.setup();
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -128,7 +129,7 @@ describe('AuthModal', () => {
 
   it('should close modal when clicking close button', async () => {
     const user = userEvent.setup();
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -148,7 +149,7 @@ describe('AuthModal', () => {
 
   it('should toggle to sign up form', async () => {
     const user = userEvent.setup();
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -161,7 +162,7 @@ describe('AuthModal', () => {
   });
 
   it('should have backdrop blur effect class', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -188,7 +189,7 @@ describe('AuthModal', () => {
   it('should be above header z-index', () => {
     // Header has z-index: 50 (from Header.tsx className)
     // Modal should have z-index: 9999
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -203,7 +204,7 @@ describe('AuthModal', () => {
   });
 
   it('should have proper spacing with padding', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -215,7 +216,7 @@ describe('AuthModal', () => {
   });
 
   it('should have error message container in component structure', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -225,7 +226,7 @@ describe('AuthModal', () => {
   });
 
   it('should have smooth animations', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
@@ -237,7 +238,7 @@ describe('AuthModal', () => {
   });
 
   it('should have responsive width', () => {
-    const { container } = render(
+    render(
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 

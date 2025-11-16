@@ -1,7 +1,7 @@
 .prediction-page {
   flex: 1;
-  background: linear-gradient(to bottom, #f9fafb, #ffffff);
 }
+
 
 .prediction-main {
   width: 100%;
@@ -96,6 +96,10 @@
 
 .btn-secondary {
   background: white;
+
+.dark .prediction-container {
+  background: rgb(17, 24, 39);
+}
   color: #667eea;
   border: 2px solid #667eea;
   padding: 0.75rem 1.5rem;
@@ -642,4 +646,5 @@
     min-width: 0;
   }
 }
+
 

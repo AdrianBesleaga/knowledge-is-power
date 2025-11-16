@@ -1,7 +1,7 @@
 .profile-page {
   flex: 1;
-  background: linear-gradient(to bottom, #f9fafb, #ffffff);
 }
+
 
 .profile-main {
   max-width: 1200px;
@@ -19,10 +19,18 @@
   font-size: 2rem;
 }
 
+.dark .profile-info h2 {
+  color: #ffffff;
+}
+
 .user-email {
   margin: 0;
   color: #666;
   font-size: 1rem;
+}
+
+.dark .user-email {
+  color: rgb(156, 163, 175);
 }
 
 .empty-state {
@@ -41,9 +49,17 @@
   font-size: 1.5rem;
 }
 
+.dark .empty-state h3 {
+  color: #ffffff;
+}
+
 .empty-state p {
   margin: 0 0 2rem;
   color: #666;
+}
+
+.dark .empty-state p {
+  color: rgb(156, 163, 175);
 }
 
 .btn-primary {
@@ -76,6 +92,11 @@
   padding: 1.5rem;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.dark .graph-card {
+  background: rgb(31, 41, 55);
+  border: 1px solid rgb(55, 65, 81);
 }
 
 .graph-card:hover {

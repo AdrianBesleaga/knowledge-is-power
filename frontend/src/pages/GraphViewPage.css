@@ -1,6 +1,5 @@
 .graph-view-page {
   flex: 1;
-  background: linear-gradient(to bottom, #f9fafb, #ffffff);
 }
 
 .loading-container,
@@ -158,4 +157,5 @@
     grid-template-columns: 1fr;
   }
 }
+
 

@@ -1,5 +1,5 @@
 import { getMongoDB } from '../config/mongodb';
-import { User, CreditTransaction, DEFAULT_CREDITS } from '../models/User';
+import { User, CreditTransaction, UnlockedContent, DEFAULT_CREDITS } from '../models/User';
 
 const USERS_COLLECTION = 'users';
 
@@ -166,5 +166,53 @@ export const creditService = {
 
     // Return last N transactions
     return user.creditHistory.slice(-limit).reverse();
+  },
+
+  /**
+   * Check if user has already unlocked specific content
+   */
+  async hasUnlockedContent(uid: string, contentType: 'graph' | 'timeline', slug: string): Promise<boolean> {
+    const db = await getMongoDB();
+    const users = db.collection<User>(USERS_COLLECTION);
+
+    const user = await users.findOne({
+      uid,
+      'unlockedContent.type': contentType,
+      'unlockedContent.slug': slug
+    });
+
+    return !!user;
+  },
+
+  /**
+   * Record unlocked content for user (prevents duplicate payments)
+   */
+  async recordUnlockedContent(
+    uid: string,
+    contentType: 'graph' | 'timeline',
+    slug: string,
+    creditsSpent: number = 1
+  ): Promise<void> {
+    const db = await getMongoDB();
+    const users = db.collection<User>(USERS_COLLECTION);
+
+    const unlockedContent: UnlockedContent = {
+      type: contentType,
+      slug,
+      unlockedAt: new Date(),
+      creditsSpent,
+    };
+
+    await users.updateOne(
+      { uid },
+      {
+        $push: {
+          unlockedContent,
+        },
+        $set: {
+          updatedAt: new Date(),
+        },
+      }
+    );
   },
 };

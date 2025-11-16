@@ -5,6 +5,7 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   creditHistory: CreditTransaction[];
+  unlockedContent?: UnlockedContent[];
 }
 
 export interface CreditTransaction {
@@ -13,6 +14,13 @@ export interface CreditTransaction {
   amount: number;
   description: string;
   remainingCredits: number;
+}
+
+export interface UnlockedContent {
+  type: 'graph' | 'timeline';
+  slug: string;
+  unlockedAt: Date;
+  creditsSpent: number;
 }
 
 export const DEFAULT_CREDITS = 10;

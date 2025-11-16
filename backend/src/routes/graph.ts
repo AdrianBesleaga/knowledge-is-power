@@ -513,6 +513,17 @@ router.post('/:slug/unlock', authenticateToken, async (req: AuthRequest, res: Re
       return;
     }
 
+    // Check if user has already unlocked this content
+    const alreadyUnlocked = await creditService.hasUnlockedContent(req.user.uid, 'graph', slug);
+    if (alreadyUnlocked) {
+      console.log(`[API] User ${req.user.uid} already unlocked graph "${slug}", providing access without additional payment`);
+      res.json({
+        success: true,
+        graph,
+      });
+      return;
+    }
+
     // Deduct 1 credit for premium content access
     try {
       const remainingCredits = await creditService.deductCredits(
@@ -521,6 +532,9 @@ router.post('/:slug/unlock', authenticateToken, async (req: AuthRequest, res: Re
         `Unlocked premium graph: "${graph.topic}"`
       );
       console.log(`[API] Credit deducted for premium graph unlock. Remaining: ${remainingCredits}`);
+
+      // Record that this content has been unlocked
+      await creditService.recordUnlockedContent(req.user.uid, 'graph', slug, 1);
     } catch (error) {
       if (error instanceof InsufficientCreditsError) {
         res.status(402).json({

@@ -554,10 +554,10 @@ export const PredictionPage = () => {
           <div className="timeline-section">
             <div className="timeline-header">
               <div>
-                <h3>{isPremiumLocked && premiumTimelineData ? premiumTimelineData.topic : timeline.topic}</h3>
-                <p className="value-label">Tracking: {isPremiumLocked && premiumTimelineData ? premiumTimelineData.valueLabel : timeline.valueLabel}</p>
-                {(!isPremiumLocked && timeline.version) && (
-                  <p className="version-label">Version {timeline.version}</p>
+                <h3>{isPremiumLocked && premiumTimelineData ? premiumTimelineData.topic : timeline!.topic}</h3>
+                <p className="value-label">Tracking: {isPremiumLocked && premiumTimelineData ? premiumTimelineData.valueLabel : timeline!.valueLabel}</p>
+                {(!isPremiumLocked && timeline!.version) && (
+                  <p className="version-label">Version {timeline!.version}</p>
                 )}
                 {isPremiumLocked && <span className="premium-badge">💎 Premium</span>}
               </div>
@@ -570,7 +570,7 @@ export const PredictionPage = () => {
                     onVisibilityChange={handleTimelineVisibilityChange}
                   />
                 )}
-                {slug && user && !isPremiumLocked && timeline.userId === user.uid && (
+                {slug && user && !isPremiumLocked && timeline!.userId === user.uid && (
                   <>
                     {reprocessedData ? (
                       <button 
@@ -606,7 +606,7 @@ export const PredictionPage = () => {
                     {versions.length > 0 && (
                       <select
                         className="version-selector"
-                        value={selectedVersion || timeline.version || 1}
+                        value={selectedVersion || timeline!.version || 1}
                         onChange={(e) => handleVersionChange(parseInt(e.target.value, 10))}
                         disabled={loadingVersions || loading}
                       >
@@ -617,7 +617,7 @@ export const PredictionPage = () => {
                         ))}
                       </select>
                     )}
-                    {!isPremiumLocked && timeline.visibility === 'private' && (
+                    {!isPremiumLocked && timeline!.visibility === 'private' && (
                       <button 
                         className="btn-danger" 
                         onClick={() => setShowDeleteConfirm(true)}
@@ -650,10 +650,10 @@ export const PredictionPage = () => {
                 </PremiumContentOverlay>
               ) : (
                 <TimelineChart
-                  pastEntries={timeline.pastEntries}
-                  presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
-                  predictions={reprocessedData?.predictions || timeline.predictions}
-                  valueLabel={timeline.valueLabel}
+                  pastEntries={timeline!.pastEntries}
+                  presentEntry={reprocessedData?.presentEntry || timeline!.presentEntry}
+                  predictions={reprocessedData?.predictions || timeline!.predictions}
+                  valueLabel={timeline!.valueLabel}
                   onPredictionClick={handlePredictionClick}
                 />
               )}
@@ -675,10 +675,10 @@ export const PredictionPage = () => {
                 </PremiumContentOverlay>
               ) : (
                 <VerticalTimelineChart
-                  pastEntries={timeline.pastEntries}
-                  presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
-                  predictions={reprocessedData?.predictions || timeline.predictions}
-                  valueLabel={timeline.valueLabel}
+                  pastEntries={timeline!.pastEntries}
+                  presentEntry={reprocessedData?.presentEntry || timeline!.presentEntry}
+                  predictions={reprocessedData?.predictions || timeline!.predictions}
+                  valueLabel={timeline!.valueLabel}
                 />
               )}
             </div>

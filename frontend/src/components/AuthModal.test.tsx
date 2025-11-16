@@ -40,7 +40,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const overlay = container.querySelector('.modal-overlay');
+    const overlay = document.body.querySelector('.modal-overlay');
     expect(overlay).toBeInTheDocument();
 
     // Get computed styles
@@ -53,7 +53,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const overlay = container.querySelector('.modal-overlay');
+    const overlay = document.body.querySelector('.modal-overlay');
     const styles = window.getComputedStyle(overlay as Element);
 
     expect(styles.position).toBe('fixed');
@@ -68,7 +68,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const overlay = container.querySelector('.modal-overlay');
+    const overlay = document.body.querySelector('.modal-overlay');
     const styles = window.getComputedStyle(overlay as Element);
 
     expect(styles.display).toBe('flex');
@@ -81,7 +81,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const modalContent = container.querySelector('.modal-content');
+    const modalContent = document.body.querySelector('.modal-content');
     expect(modalContent).toBeInTheDocument();
 
     const styles = window.getComputedStyle(modalContent as Element);
@@ -93,7 +93,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const modalContent = container.querySelector('.modal-content');
+    const modalContent = document.body.querySelector('.modal-content');
     const styles = window.getComputedStyle(modalContent as Element);
 
     expect(styles.maxHeight).toBe('calc(100vh - 4rem)');
@@ -106,7 +106,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const overlay = container.querySelector('.modal-overlay');
+    const overlay = document.body.querySelector('.modal-overlay');
     if (overlay) {
       await user.click(overlay);
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -119,7 +119,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const modalContent = container.querySelector('.modal-content');
+    const modalContent = document.body.querySelector('.modal-content');
     if (modalContent) {
       await user.click(modalContent as Element);
       expect(mockOnClose).not.toHaveBeenCalled();
@@ -132,7 +132,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const closeButton = container.querySelector('.modal-close');
+    const closeButton = document.body.querySelector('.modal-close');
     if (closeButton) {
       await user.click(closeButton);
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -153,7 +153,7 @@ describe('AuthModal', () => {
     );
 
     // Click sign up link
-    const signUpLink = container.querySelector('.link-button');
+    const signUpLink = document.body.querySelector('.link-button');
     if (signUpLink) {
       await user.click(signUpLink);
       expect(screen.getByText('Create an account to save graphs')).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const overlay = container.querySelector('.modal-overlay');
+    const overlay = document.body.querySelector('.modal-overlay');
     expect(overlay).toBeInTheDocument();
     // backdrop-filter is not supported in jsdom but is defined in CSS
     // Just verify the element exists with the class
@@ -192,7 +192,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const overlay = container.querySelector('.modal-overlay');
+    const overlay = document.body.querySelector('.modal-overlay');
     const styles = window.getComputedStyle(overlay as Element);
 
     const modalZIndex = parseInt(styles.zIndex);
@@ -207,7 +207,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const overlay = container.querySelector('.modal-overlay');
+    const overlay = document.body.querySelector('.modal-overlay');
     const styles = window.getComputedStyle(overlay as Element);
 
     // Should have padding to ensure modal doesn't touch screen edges
@@ -221,7 +221,7 @@ describe('AuthModal', () => {
 
     // Verify the component structure exists
     // Error message won't be visible until an actual error occurs
-    expect(container.querySelector('.modal-content')).toBeInTheDocument();
+    expect(document.body.querySelector('.modal-content')).toBeInTheDocument();
   });
 
   it('should have smooth animations', () => {
@@ -229,7 +229,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const overlay = container.querySelector('.modal-overlay');
+    const overlay = document.body.querySelector('.modal-overlay');
     const styles = window.getComputedStyle(overlay as Element);
 
     // Check for animation
@@ -241,7 +241,7 @@ describe('AuthModal', () => {
       <AuthModal isOpen={true} onClose={mockOnClose} />
     );
 
-    const modalContent = container.querySelector('.modal-content');
+    const modalContent = document.body.querySelector('.modal-content');
     const styles = window.getComputedStyle(modalContent as Element);
 
     expect(styles.maxWidth).toBe('420px');

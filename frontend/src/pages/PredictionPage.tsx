@@ -4,6 +4,7 @@ import { SearchBar } from '../components/SearchBar';
 import { generateTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions, deleteTimeline } from '../services/api';
 import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
 import { TimelineChart } from '../components/TimelineChart';
+import { VerticalTimelineChart } from '../components/VerticalTimelineChart';
 import { ShareButton } from '../components/ShareButton';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../hooks/useAuth';
@@ -495,6 +496,14 @@ export const PredictionPage = () => {
 
             <div className="timeline-chart-container">
               <TimelineChart
+                pastEntries={timeline.pastEntries}
+                presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
+                predictions={reprocessedData?.predictions || timeline.predictions}
+                valueLabel={timeline.valueLabel}
+              />
+            </div>
+            <div className="timeline-chart-container">
+              <VerticalTimelineChart
                 pastEntries={timeline.pastEntries}
                 presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
                 predictions={reprocessedData?.predictions || timeline.predictions}

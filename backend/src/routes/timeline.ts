@@ -219,7 +219,7 @@ router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    console.log(`[API] Timeline retrieval request for slug: "${slug}"${version ? `, version: ${version}` : ' (latest)'}`);
+    console.log(`[API] Timeline retrieval request for slug: "${slug}"${version ? `, version: ${version}` : ' (latest)'} by ${req.user ? `user ${req.user.uid}` : 'anonymous user'}`);
     const timeline = await timelineService.getTimelineBySlug(slug, version);
 
     if (!timeline) {
@@ -236,7 +236,8 @@ router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
 
     // For premium timelines, check if user has paid or owns the timeline
     if (timeline.visibility === 'premium' && (!req.user || req.user.uid !== timeline.userId)) {
-      console.log(`[Timeline API] Premium timeline "${timeline.slug}" accessed by ${req.user ? 'user ' + req.user.uid : 'anonymous user'}, owner: ${timeline.userId}`);
+      console.log(`[Timeline API] Premium timeline "${timeline.slug}" accessed by ${req.user ? `user ${req.user.uid} (type: ${typeof req.user.uid})` : 'anonymous user'}, owner: ${timeline.userId} (type: ${typeof timeline.userId})`);
+      console.log(`[Timeline API] User is owner: ${req.user ? req.user.uid === timeline.userId : false}`);
       // TODO: Check if user has already paid for this specific timeline view
       // For now, return a "payment required" response
       res.status(402).json({

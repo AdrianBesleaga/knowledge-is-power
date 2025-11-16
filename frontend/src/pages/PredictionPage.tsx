@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
 import { generateTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions, deleteTimeline, getPopularTimelines } from '../services/api';
@@ -37,6 +37,7 @@ export const PredictionPage = () => {
   const [showPredictionModal, setShowPredictionModal] = useState(false);
   const [isPremiumLocked, setIsPremiumLocked] = useState(false);
   const [premiumTimelineData, setPremiumTimelineData] = useState<any>(null);
+  const loadedSlugRef = useRef<string | null>(null);
 
   // Load popular timelines when no slug
   useEffect(() => {
@@ -80,7 +81,7 @@ export const PredictionPage = () => {
     };
 
     loadSavedTimelines();
-  }, [slug, user, getIdToken]);
+  }, [slug, user]);
 
   // Load versions when timeline is loaded and user owns it
   useEffect(() => {
@@ -115,15 +116,25 @@ export const PredictionPage = () => {
     };
 
     loadVersions();
-  }, [slug, user, timeline, getIdToken]);
+  }, [slug, user, timeline]);
 
   // Load timeline by slug if provided
   useEffect(() => {
+    console.log('Timeline useEffect triggered:', { slug, selectedVersion, user: !!user, isPremiumLocked, loadedSlug: loadedSlugRef.current });
     const loadTimeline = async () => {
       if (!slug) {
         // Clear timeline state when navigating back to /predictions without slug
         setTimeline(null);
         setReprocessedData(null);
+        setIsPremiumLocked(false);
+        setPremiumTimelineData(null);
+        loadedSlugRef.current = null;
+        return;
+      }
+
+      // Don't load if we already loaded this slug
+      if (loadedSlugRef.current === slug) {
+        console.log('Skipping load - already loaded this slug');
         return;
       }
 
@@ -147,6 +158,8 @@ export const PredictionPage = () => {
           setIsPremiumLocked(false);
           setPremiumTimelineData(null);
           setReprocessedData(null); // Clear any reprocessed data when loading a timeline
+          loadedSlugRef.current = slug; // Mark as loaded
+          console.log('Timeline loaded successfully:', loadedTimeline?.topic, 'visibility:', loadedTimeline?.visibility);
         } catch (err: any) {
           // Handle premium content that requires payment
           if (err.response?.status === 402 && err.response?.data?.code === 'PREMIUM_CONTENT') {
@@ -154,6 +167,8 @@ export const PredictionPage = () => {
             setPremiumTimelineData(err.response.data.timeline);
             setTimeline(null);
             setError(null);
+            loadedSlugRef.current = slug; // Mark as loaded (with premium data)
+            console.log('Premium timeline detected, data loaded');
           } else {
             throw err;
           }
@@ -167,7 +182,7 @@ export const PredictionPage = () => {
     };
 
     loadTimeline();
-  }, [slug, user, getIdToken, selectedVersion]);
+  }, [slug, user, selectedVersion]);
 
   // Auto-generate timeline after successful authentication if there's a pending topic
   useEffect(() => {
@@ -328,7 +343,8 @@ export const PredictionPage = () => {
 
   const handleVersionChange = async (version: number) => {
     if (!slug) return;
-    
+
+    console.log('Version change triggered:', version);
     setSelectedVersion(version);
     setLoading(true);
     setError(null);
@@ -339,9 +355,11 @@ export const PredictionPage = () => {
         setAuthToken(token);
       }
 
+      console.log('Making API call for version change:', slug, version);
       const loadedTimeline = await getTimelineBySlug(slug, version);
       setTimeline(loadedTimeline);
       setReprocessedData(null);
+      // Note: loadedSlugRef stays the same since it's the same slug, just different version
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load version');
       console.error('Error loading version:', err);

@@ -196,3 +196,52 @@
   }
 }
 
+/* Dark mode styles */
+.dark .prediction-modal-content {
+  background: #1a1a24;
+  border: 1px solid #2a2a38;
+}
+
+.dark .modal-close {
+  color: #9ca3af;
+}
+
+.dark .modal-close:hover {
+  background: #232330;
+  color: #e5e7eb;
+}
+
+.dark .prediction-modal-header h2 {
+  color: #e5e7eb;
+}
+
+.dark .prediction-modal-subtitle {
+  color: #9ca3af;
+}
+
+.dark .prediction-modal-scenario {
+  background: #13131a;
+  border-color: #2a2a38;
+}
+
+.dark .prediction-modal-scenario:hover {
+  background: #232330;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark .scenario-modal-title {
+  color: #e5e7eb;
+}
+
+.dark .scenario-modal-value {
+  color: #e5e7eb;
+}
+
+.dark .scenario-modal-summary {
+  color: #9ca3af;
+}
+
+.dark .scenario-modal-confidence {
+  border-top-color: #2a2a38;
+}
+

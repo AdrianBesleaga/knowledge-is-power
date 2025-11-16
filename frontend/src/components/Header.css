@@ -1,7 +1,7 @@
 .app-header {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--gray-200);
+  border-bottom: 1px solid #e5e7eb;
   padding: 1rem 0;
   position: sticky;
   top: 0;
@@ -38,11 +38,11 @@
 .back-button {
   background: none;
   border: none;
-  color: var(--primary-600);
+  color: #0284c7;
   font-size: 1rem;
   cursor: pointer;
   padding: 0.625rem 1.25rem;
-  border-radius: var(--radius-md);
+  border-radius: 0.5rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   font-weight: 600;
@@ -50,18 +50,18 @@
 }
 
 .back-button:hover {
-  background: var(--primary-50);
-  color: var(--primary-700);
+  background: #f0f9ff;
+  color: #0369a1;
 }
 
 .btn-secondary {
   padding: 0.75rem 1.5rem;
   font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--primary-700);
+  color: #0369a1;
   background: white;
-  border: 2px solid var(--primary-600);
-  border-radius: var(--radius-md);
+  border: 2px solid #0284c7;
+  border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
@@ -70,7 +70,7 @@
 }
 
 .btn-secondary:hover {
-  background: var(--primary-600);
+  background: #0284c7;
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(14, 165, 233, 0.2);

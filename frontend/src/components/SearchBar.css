@@ -12,10 +12,10 @@
   font-size: 1.0625rem;
   font-family: 'Inter', sans-serif;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-lg);
+  border-radius: 0.75rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background: rgba(255, 255, 255, 0.95);
-  color: var(--gray-900);
+  color: #111827;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -43,9 +43,9 @@
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   color: white;
-  background: linear-gradient(135deg, var(--primary-600) 0%, var(--accent-600) 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #c026d3 100%);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
@@ -65,7 +65,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--primary-500) 0%, var(--accent-500) 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #d946ef 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }

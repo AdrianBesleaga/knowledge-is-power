@@ -316,3 +316,117 @@
   font-style: italic;
 }
 
+/* Dark mode styles */
+.dark .custom-node {
+  background: #1a1a24;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark .custom-node:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.dark .node-label {
+  color: #e5e7eb;
+}
+
+.dark .node-impact {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Dark mode node variants */
+.dark .node-central {
+  background: linear-gradient(135deg, #667eea30 0%, #764ba230 100%);
+  border-color: #667eea;
+}
+
+.dark .node-central .node-label {
+  color: #818cf8;
+}
+
+.dark .node-positive {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+}
+
+.dark .node-positive .node-impact {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.dark .node-negative {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+}
+
+.dark .node-negative .node-impact {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.dark .node-neutral {
+  background: rgba(156, 163, 175, 0.1);
+  border-color: #9ca3af;
+}
+
+.dark .node-neutral .node-impact {
+  color: #9ca3af;
+}
+
+.dark .react-flow__handle {
+  background: #667eea;
+  border-color: #1a1a24;
+}
+
+/* Dark mode tooltip */
+.dark .node-hover-tooltip {
+  background: #1a1a24;
+  border-color: #2a2a38;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.dark .node-hover-tooltip::after {
+  border-top-color: #1a1a24;
+}
+
+.dark .tooltip-header {
+  border-bottom-color: #2a2a38;
+}
+
+.dark .tooltip-header h3 {
+  color: #e5e7eb;
+}
+
+.dark .tooltip-category-badge {
+  background: #232330;
+  color: #9ca3af;
+}
+
+.dark .tooltip-impact-section {
+  background: #13131a;
+}
+
+.dark .tooltip-impact-bar-bg {
+  background: #232330;
+}
+
+.dark .tooltip-summary p {
+  color: #9ca3af;
+}
+
+.dark .tooltip-sources {
+  color: #9ca3af;
+}
+
+.dark .tooltip-sources strong {
+  color: #e5e7eb;
+}
+
+.dark .tooltip-source-link {
+  color: #60a5fa;
+}
+
+.dark .tooltip-source-link:hover {
+  color: #3b82f6;
+}
+

@@ -158,4 +158,69 @@
   }
 }
 
+/* Dark mode styles */
+.dark .error-container p {
+  color: #9ca3af;
+}
+
+.dark .graph-summary-section {
+  background: #13131a;
+  border-left-color: #667eea;
+}
+
+.dark .graph-summary-section h3 {
+  color: #e5e7eb;
+}
+
+.dark .graph-summary {
+  color: #9ca3af;
+}
+
+.dark .graph-info h2 {
+  color: #e5e7eb;
+}
+
+.dark .graph-meta {
+  color: #9ca3af;
+}
+
+.dark .graph-display {
+  background: #0a0a0f;
+  border-color: #2a2a38;
+}
+
+.dark .info-text {
+  color: #9ca3af;
+}
+
+.dark .related-graphs-section {
+  border-top-color: #2a2a38;
+}
+
+.dark .related-graphs-section h3 {
+  color: #e5e7eb;
+}
+
+.dark .related-description {
+  color: #9ca3af;
+}
+
+.dark .related-graph-card {
+  background: #13131a;
+  border-color: #2a2a38;
+}
+
+.dark .related-graph-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.dark .related-graph-card h4 {
+  color: #e5e7eb;
+}
+
+.dark .related-graph-meta {
+  color: #9ca3af;
+}
+
 

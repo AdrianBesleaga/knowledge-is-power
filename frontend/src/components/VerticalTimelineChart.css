@@ -80,24 +80,44 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
   z-index: 2;
   padding: 0 0.5rem;
 }
 
 .year-label {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   white-space: nowrap;
   padding: 0.5rem 1rem;
   background: white;
   border: 2px solid #667eea;
   border-radius: 8px;
   min-width: 80px;
-  text-align: center;
   position: relative;
   z-index: 2;
+}
+
+.year-text {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #1a1a1a;
+}
+
+.year-badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.125rem 0.375rem;
+  border-radius: 8px;
+  color: white;
+}
+
+.year-badge:not(:empty) {
+  background: currentColor;
+}
+
+.vertical-timeline-item.historical .year-badge {
+  background: #6b7280;
 }
 
 .vertical-timeline-item.present .year-label {
@@ -105,18 +125,14 @@
   border-color: #10b981;
 }
 
-.present-badge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
+.vertical-timeline-item.present .year-badge {
   background: #10b981;
-  color: white;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  width: fit-content;
-  position: relative;
-  z-index: 2;
 }
+
+.vertical-timeline-item.prediction .year-badge {
+  background: #8b5cf6;
+}
+
 
 
 .historical-content-wrapper {
@@ -346,6 +362,16 @@
     font-size: 1.1rem;
     padding: 0.4rem 0.8rem;
     min-width: 70px;
+    gap: 0.3rem;
+  }
+
+  .year-text {
+    font-size: 1rem;
+  }
+
+  .year-badge {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.3rem;
   }
 
 

@@ -256,10 +256,14 @@ export const VerticalTimelineChart = ({
                 {/* Year in center */}
                 <div className="timeline-year-section">
                   <div className="year-label-wrapper">
-                    <div className="year-label">{data.dateLabel}</div>
-                    {data.type === 'present' && (
-                      <div className="present-badge">Present</div>
-                    )}
+                    <div className="year-label">
+                      <span className="year-text">{data.dateLabel}</span>
+                      <span className="year-badge">
+                        {data.type === 'historical' && 'Past'}
+                        {data.type === 'present' && 'Present'}
+                        {data.type === 'prediction' && 'Prediction'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

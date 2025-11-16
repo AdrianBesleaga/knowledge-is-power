@@ -1,4 +1,5 @@
-import './Logo.css';
+import { motion } from 'framer-motion';
+import { Network } from 'lucide-react';
 
 interface LogoProps {
   size?: number;
@@ -6,70 +7,33 @@ interface LogoProps {
   onClick?: () => void;
 }
 
-export const Logo = ({ size = 32, showText = true, onClick }: LogoProps) => {
+export const Logo = ({ showText = true, onClick }: LogoProps) => {
   return (
-    <div className="logo-container" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 100 100"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="logo-icon"
-      >
-        {/* Central node - represents knowledge/core */}
-        <circle cx="50" cy="50" r="12" fill="url(#gradient1)" />
-        
-        {/* Connected nodes - represents knowledge network */}
-        <circle cx="30" cy="30" r="8" fill="url(#gradient2)" />
-        <circle cx="70" cy="30" r="8" fill="url(#gradient2)" />
-        <circle cx="30" cy="70" r="8" fill="url(#gradient2)" />
-        <circle cx="70" cy="70" r="8" fill="url(#gradient2)" />
-        <circle cx="20" cy="50" r="7" fill="url(#gradient2)" />
-        <circle cx="80" cy="50" r="7" fill="url(#gradient2)" />
-        <circle cx="50" cy="20" r="7" fill="url(#gradient2)" />
-        <circle cx="50" cy="80" r="7" fill="url(#gradient2)" />
-        
-        {/* Connection lines - represents relationships */}
-        <line x1="50" y1="50" x2="30" y2="30" stroke="url(#gradient3)" strokeWidth="2" />
-        <line x1="50" y1="50" x2="70" y2="30" stroke="url(#gradient3)" strokeWidth="2" />
-        <line x1="50" y1="50" x2="30" y2="70" stroke="url(#gradient3)" strokeWidth="2" />
-        <line x1="50" y1="50" x2="70" y2="70" stroke="url(#gradient3)" strokeWidth="2" />
-        <line x1="50" y1="50" x2="20" y2="50" stroke="url(#gradient3)" strokeWidth="2" />
-        <line x1="50" y1="50" x2="80" y2="50" stroke="url(#gradient3)" strokeWidth="2" />
-        <line x1="50" y1="50" x2="50" y2="20" stroke="url(#gradient3)" strokeWidth="2" />
-        <line x1="50" y1="50" x2="50" y2="80" stroke="url(#gradient3)" strokeWidth="2" />
-        
-        {/* Additional connections between outer nodes */}
-        <line x1="30" y1="30" x2="70" y2="30" stroke="url(#gradient4)" strokeWidth="1.5" opacity="0.6" />
-        <line x1="30" y1="70" x2="70" y2="70" stroke="url(#gradient4)" strokeWidth="1.5" opacity="0.6" />
-        <line x1="30" y1="30" x2="30" y2="70" stroke="url(#gradient4)" strokeWidth="1.5" opacity="0.6" />
-        <line x1="70" y1="30" x2="70" y2="70" stroke="url(#gradient4)" strokeWidth="1.5" opacity="0.6" />
-        
-        {/* Gradients */}
-        <defs>
-          <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#667eea" />
-            <stop offset="100%" stopColor="#764ba2" />
-          </linearGradient>
-          <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#764ba2" />
-            <stop offset="100%" stopColor="#667eea" />
-          </linearGradient>
-          <linearGradient id="gradient3" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#667eea" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#764ba2" stopOpacity="0.4" />
-          </linearGradient>
-          <linearGradient id="gradient4" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#667eea" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#764ba2" stopOpacity="0.2" />
-          </linearGradient>
-        </defs>
-      </svg>
+    <motion.div
+      className="flex items-center gap-3 cursor-pointer group"
+      onClick={onClick}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      {/* Modern minimalist icon */}
+      <div className="relative">
+        <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary-500 to-accent-600 opacity-20 blur-xl group-hover:opacity-30 transition-opacity" />
+        <div className="relative w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-accent-600 dark:from-primary-600 dark:to-accent-700 flex items-center justify-center">
+          <Network className="w-6 h-6 text-white" strokeWidth={2.5} />
+        </div>
+      </div>
+
+      {/* Logo Text */}
       {showText && (
-        <span className="logo-text">Knowledge is Power</span>
+        <div className="flex flex-col">
+          <span className="text-lg font-bold dark:text-white text-gray-900 tracking-tight">
+            Knowledge is Power
+          </span>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 -mt-1">
+            AI Powered Analysis
+          </span>
+        </div>
       )}
-    </div>
+    </motion.div>
   );
 };
-

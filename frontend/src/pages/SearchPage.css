@@ -1,6 +1,5 @@
 .search-page {
   flex: 1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .search-main {
@@ -377,4 +376,5 @@
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
 }
+
 

@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { TimelineEntry, Prediction } from '../types/timeline';
 import { Sources } from './Sources';
 import './TimelineChart.css';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface TimelineChartProps {
   pastEntries: TimelineEntry[];
@@ -251,6 +252,8 @@ export const TimelineChart = ({
   valueLabel,
   onPredictionClick,
 }: TimelineChartProps) => {
+  const { theme } = useTheme();
+  const darkMode = theme === 'dark';
   const [hoveredPrediction, setHoveredPrediction] = useState<Prediction | null>(null);
   const [hoveredDateLabel, setHoveredDateLabel] = useState<string | null>(null);
   const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties | null>(null);
@@ -724,30 +727,48 @@ export const TimelineChart = ({
       <div className="chart-container-wrapper" ref={chartContainerRef} style={{ position: 'relative' }}>
         <div className="chart-scrollable-content">
           <ResponsiveContainer width="100%" height={isMobile ? 350 : 450}>
-          <LineChart 
-            data={chartData} 
+          <LineChart
+            data={chartData}
             margin={isMobile ? { top: 10, right: 10, left: 10, bottom: 60 } : { top: 20, right: 30, left: 20, bottom: 80 }}
+            style={{ backgroundColor: darkMode ? 'rgb(17, 24, 39)' : 'white' }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis 
-              dataKey="dateLabel" 
-              angle={isMobile ? -60 : -45} 
-              textAnchor="end" 
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={darkMode ? "#374151" : "#e5e7eb"}
+            />
+            <XAxis
+              dataKey="dateLabel"
+              angle={isMobile ? -60 : -45}
+              textAnchor="end"
               height={isMobile ? 60 : 80}
               interval={isMobile ? 'preserveStartEnd' : 0}
-              tick={{ fontSize: isMobile ? 10 : 12, fill: '#666' }}
+              tick={{ fontSize: isMobile ? 10 : 12, fill: darkMode ? '#9ca3af' : '#666' }}
               tickMargin={isMobile ? 5 : 10}
+              axisLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
             />
-            <YAxis 
+            <YAxis
               label={isMobile ? undefined : { value: valueLabel, angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
               domain={yDomain}
               tickFormatter={formatYAxis}
-              tick={{ fontSize: isMobile ? 10 : 12, fill: '#666' }}
+              tick={{ fontSize: isMobile ? 10 : 12, fill: darkMode ? '#9ca3af' : '#666' }}
               width={isMobile ? 50 : 80}
+              axisLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
             />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend 
-              wrapperStyle={{ paddingTop: '20px' }}
+            <Tooltip
+              content={<CustomTooltip />}
+              contentStyle={{
+                backgroundColor: darkMode ? 'rgba(17, 24, 39, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+                border: `1px solid ${darkMode ? 'rgb(55, 65, 81)' : '#e5e7eb'}`,
+                borderRadius: '8px',
+                boxShadow: darkMode ? '0 4px 16px rgba(0, 0, 0, 0.3)' : '0 4px 16px rgba(0, 0, 0, 0.15)'
+              }}
+              labelStyle={{ color: darkMode ? 'white' : '#1a1a1a' }}
+            />
+            <Legend
+              wrapperStyle={{
+                paddingTop: '20px',
+                color: darkMode ? '#d1d5db' : '#333'
+              }}
               iconType="line"
             />
             <ReferenceLine 

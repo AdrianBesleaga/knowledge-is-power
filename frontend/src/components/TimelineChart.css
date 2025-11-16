@@ -2,6 +2,10 @@
   width: 100%;
 }
 
+.dark .timeline-chart {
+  background: rgb(17, 24, 39);
+}
+
 .chart-header {
   margin-bottom: 2rem;
 }
@@ -23,8 +27,8 @@
 .chart-header h4 {
   font-size: 1.75rem;
   margin: 0 0 0.5rem;
-  color: #1a1a1a;
-  font-weight: 600;
+  color: white;
+  font-weight: 500;
 }
 
 .dark .chart-header h4 {
@@ -33,13 +37,13 @@
 
 .chart-subtitle {
   font-size: 1rem;
-  color: #667eea;
+  color: white;
   margin: 0;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .dark .chart-subtitle {
-  color: rgb(59, 130, 246);
+  color: white;
 }
 
 .sources-toggle {
@@ -100,6 +104,22 @@
 
 .dark .recharts-cartesian-axis-tick-value {
   fill: rgb(156, 163, 175);
+}
+
+.recharts-cartesian-grid-line {
+  stroke: #e5e7eb;
+}
+
+.dark .recharts-cartesian-grid-line {
+  stroke: rgb(55, 65, 81);
+}
+
+.recharts-cartesian-axis-line {
+  stroke: #d1d5db;
+}
+
+.dark .recharts-cartesian-axis-line {
+  stroke: rgb(75, 85, 99);
 }
 
 .recharts-legend-wrapper {
@@ -184,14 +204,14 @@
 
 .tooltip-label {
   font-size: 0.75rem;
-  color: #667eea;
-  font-weight: 600;
+  color: white;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .dark .tooltip-label {
-  color: rgb(59, 130, 246);
+  color: white;
 }
 
 .tooltip-value-container {
@@ -200,7 +220,7 @@
 
 .tooltip-value {
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
 }
 

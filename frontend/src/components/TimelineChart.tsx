@@ -89,7 +89,7 @@ interface PredictionInlineDisplayProps {
   onPredictionClick?: (prediction: Prediction) => void;
 }
 
-const PredictionInlineDisplay = ({ prediction, onPredictionClick }: PredictionInlineDisplayProps) => {
+const PredictionInlineDisplay = ({ prediction, onPredictionClick: _onPredictionClick }: PredictionInlineDisplayProps) => {
   const getConfidenceColor = (score: number): string => {
     if (score >= 70) return '#10b981';
     if (score >= 40) return '#f59e0b';
@@ -305,7 +305,7 @@ export const TimelineChart = ({
   const presentDate = new Date(presentEntry.date);
 
   // Add past entries
-  pastEntries.forEach((entry, index) => {
+  pastEntries.forEach((entry) => {
     const date = new Date(entry.date);
     chartData.push({
       date,

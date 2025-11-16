@@ -16,7 +16,7 @@ export const VerticalTimelineChart = ({
   predictions,
   valueLabel,
 }: VerticalTimelineChartProps) => {
-  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [_isMobile, setIsMobile] = useState<boolean>(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -216,18 +216,6 @@ export const VerticalTimelineChart = ({
   // Sort by date
   timelineData.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  // Calculate value range for scaling
-  const allValues = timelineData.flatMap(d => [
-    d.historicalValue,
-    d.optimisticValue,
-    d.neutralValue,
-    d.pessimisticValue,
-  ]).filter((v): v is number => v !== null);
-  
-  const minValue = Math.min(...allValues);
-  const maxValue = Math.max(...allValues);
-  const valueRange = maxValue - minValue || 1;
-
   // Format value for display
   const formatValue = (value: number): string => {
     if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
@@ -245,11 +233,6 @@ export const VerticalTimelineChart = ({
 
 
 
-  // Calculate positions for vertical line chart
-  const getXPosition = (value: number | null): number => {
-    if (value === null) return 0;
-    return ((value - minValue) / valueRange) * 100;
-  };
 
   return (
     <div className="vertical-timeline-chart">
@@ -263,9 +246,6 @@ export const VerticalTimelineChart = ({
           <div className="timeline-vertical-line"></div>
           
           {timelineData.map((data, index) => {
-            const nextData = timelineData[index + 1];
-            const isLast = index === timelineData.length - 1;
-            
             return (
               <div 
                 key={index} 

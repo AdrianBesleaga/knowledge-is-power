@@ -287,6 +287,31 @@
   margin-bottom: 0.5rem;
 }
 
+/* Full summaries toggle */
+.prediction-inline-display.show-full-summaries .scenario-inline-summary {
+  display: block !important;
+  max-height: none !important;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: unset !important;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.prediction-inline-display.show-full-summaries {
+  max-height: none;
+  animation: expandSummaries 0.3s ease;
+}
+
+@keyframes expandSummaries {
+  from {
+    max-height: 200px;
+  }
+  to {
+    max-height: none;
+  }
+}
+
+
 .scenario-inline-value {
   font-size: 0.9rem;
   font-weight: 600;

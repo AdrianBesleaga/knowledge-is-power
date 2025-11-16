@@ -7,6 +7,7 @@ import { TimelineChart } from '../components/TimelineChart';
 import { VerticalTimelineChart } from '../components/VerticalTimelineChart';
 import { ShareButton } from '../components/ShareButton';
 import { AuthModal } from '../components/AuthModal';
+import { PredictionModal } from '../components/PredictionModal';
 import { useAuth } from '../hooks/useAuth';
 import './PredictionPage.css';
 
@@ -29,6 +30,8 @@ export const PredictionPage = () => {
   const [savingVersion, setSavingVersion] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
+  const [showPredictionModal, setShowPredictionModal] = useState(false);
 
   // Load saved timelines when no slug and user is logged in
   useEffect(() => {
@@ -300,6 +303,12 @@ export const PredictionPage = () => {
     }
   };
 
+  // Handle prediction click to show modal
+  const handlePredictionClick = (prediction: Prediction) => {
+    setSelectedPrediction(prediction);
+    setShowPredictionModal(true);
+  };
+
   // Handle timeline deletion
   const handleDeleteTimeline = async () => {
     if (!user || !timeline || !slug || timeline.isPublic || timeline.userId !== user.uid) {
@@ -500,6 +509,7 @@ export const PredictionPage = () => {
                 presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
                 predictions={reprocessedData?.predictions || timeline.predictions}
                 valueLabel={timeline.valueLabel}
+                onPredictionClick={handlePredictionClick}
               />
             </div>
             <div className="timeline-chart-container">
@@ -523,6 +533,16 @@ export const PredictionPage = () => {
         onSuccess={() => {
           setShowAuthModal(false);
         }}
+      />
+
+      <PredictionModal
+        isOpen={showPredictionModal}
+        onClose={() => {
+          setShowPredictionModal(false);
+          setSelectedPrediction(null);
+        }}
+        prediction={selectedPrediction}
+        valueLabel={timeline?.valueLabel || ''}
       />
 
 

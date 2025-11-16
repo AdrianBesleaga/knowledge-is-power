@@ -89,7 +89,7 @@ interface PredictionInlineDisplayProps {
   onPredictionClick?: (prediction: Prediction) => void;
 }
 
-const PredictionInlineDisplay = ({ prediction, onPredictionClick: _onPredictionClick }: PredictionInlineDisplayProps) => {
+const PredictionInlineDisplay = ({ prediction, onPredictionClick }: PredictionInlineDisplayProps) => {
   const getConfidenceColor = (score: number): string => {
     if (score >= 70) return '#10b981';
     if (score >= 40) return '#f59e0b';
@@ -186,8 +186,23 @@ const PredictionInlineDisplay = ({ prediction, onPredictionClick: _onPredictionC
   // Sort scenarios in the correct order
   const sortedScenarios = sortScenarios(prediction.scenarios);
 
+  const [showFullSummaries, setShowFullSummaries] = useState(false);
+
+  const handleClick = () => {
+    if (onPredictionClick) {
+      onPredictionClick(prediction);
+    } else {
+      // Simple CSS toggle for full summaries
+      setShowFullSummaries(!showFullSummaries);
+    }
+  };
+
   return (
-    <div className="prediction-inline-display">
+    <div
+      className={`prediction-inline-display ${showFullSummaries ? 'show-full-summaries' : ''}`}
+      onClick={handleClick}
+      style={{ cursor: 'pointer' }}
+    >
       <div className="prediction-inline-header">
         <span className="prediction-inline-label">{prediction.timeline}</span>
       </div>
@@ -215,7 +230,7 @@ const PredictionInlineDisplay = ({ prediction, onPredictionClick: _onPredictionC
               <Sources sources={scenario.sources} className="inline" />
             )}
             <div className="scenario-inline-confidence">
-              <span 
+              <span
                 className="scenario-inline-confidence-value"
                 style={{ color: getConfidenceColor(scenario.confidenceScore ?? 0) }}
               >
@@ -309,7 +324,7 @@ export const TimelineChart = ({
     const date = new Date(entry.date);
     chartData.push({
       date,
-      dateLabel: date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+      dateLabel: date.toLocaleDateString('en-US', { year: 'numeric' }),
       historicalValue: entry.value,
       optimisticValue: null,
       neutralValue: null,
@@ -342,7 +357,7 @@ export const TimelineChart = ({
       
       chartData.push({
         date: predictionDate,
-        dateLabel: predictionDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+        dateLabel: predictionDate.toLocaleDateString('en-US', { year: 'numeric' }),
         historicalValue: null,
         optimisticValue: scenarios.optimistic,
         neutralValue: scenarios.neutral,

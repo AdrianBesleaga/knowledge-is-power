@@ -168,27 +168,111 @@ export const HomePage = () => {
     <div className="home-page">
       <main className="home-main">
         <div className="hero-section">
-          <h2 className="hero-title">
-            Understand Complex Topics Through Visual Knowledge Graphs
-          </h2>
-          <p className="hero-subtitle">
-            AI-powered analysis showing relationships and impacts between information sources
-          </p>
-          {!user && (
-            <p className="hero-auth-hint">
-              Sign in to generate knowledge graphs
+          <div className="hero-content">
+            <div className="hero-badge">
+              <span className="badge-text">🚀 AI-Powered Intelligence</span>
+            </div>
+
+            <h1 className="hero-title">
+              Transform Any Topic Into
+              <span className="hero-highlight">
+                Actionable Intelligence
+                <div className="fire-particles">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </span>
+            </h1>
+
+            <p className="hero-subtitle">
+              Generate comprehensive knowledge graphs and AI predictions from any topic.
+              Fact-checked, visualized, and ready for decision-making.
             </p>
-          )}
-          
-          <div className="search-section">
-            <SearchBar onSearch={handleSearch} loading={loading} />
+
+            <div className="hero-features">
+              <div className="feature-item">
+                <div className="feature-icon">🔍</div>
+                <span>Multi-Source Analysis</span>
+              </div>
+              <div className="feature-item">
+                <div className="feature-icon">✅</div>
+                <span>Fact-Verified Results</span>
+              </div>
+              <div className="feature-item">
+                <div className="feature-icon">⚡</div>
+                <span>Lightning Fast</span>
+              </div>
+            </div>
+
+            <div className="search-section">
+              <SearchBar onSearch={handleSearch} loading={loading} />
+            </div>
+
+            {!user && (
+              <p className="hero-auth-hint">
+                <span className="auth-icon">🔐</span>
+                Sign in to unlock the full power of AI analysis
+              </p>
+            )}
+
+            {error && (
+              <div className="error-banner">
+                {error}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="features-section">
+          <div className="features-header">
+            <h2 className="features-title">
+              Powerful AI Features
+            </h2>
+            <p className="features-subtitle">
+              Everything you need to transform topics into actionable insights
+            </p>
           </div>
 
-          {error && (
-            <div className="error-banner">
-              {error}
+          <div className="features-container">
+            <div className="feature-card">
+              <div className="feature-icon-large">🔍</div>
+              <h3>Comprehensive Research</h3>
+              <p>AI analyzes topics from multiple sources, gathering relevant facts and establishing connections between information.</p>
             </div>
-          )}
+
+            <div className="feature-card">
+              <div className="feature-icon-large">✅</div>
+              <h3>Fact-Checked Accuracy</h3>
+              <p>Every piece of information is verified and cross-referenced to ensure reliability and eliminate misinformation.</p>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon-large">🕸️</div>
+              <h3>Visual Knowledge Graphs</h3>
+              <p>Transform complex relationships into interactive, easy-to-understand visual graphs that reveal hidden connections.</p>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon-large">🔮</div>
+              <h3>AI Predictions</h3>
+              <p>Leverage verified data to generate intelligent predictions about future trends, impacts, and developments.</p>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon-large">💾</div>
+              <h3>Save & Share</h3>
+              <p>Save your analyses and predictions for future reference. Share insights with colleagues and stakeholders.</p>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon-large">⚡</div>
+              <h3>Lightning Fast</h3>
+              <p>Get comprehensive analysis in minutes, not hours. Turn complex research into actionable intelligence instantly.</p>
+            </div>
+          </div>
         </div>
 
         {topic && (
@@ -256,7 +340,7 @@ export const HomePage = () => {
                     <div
                       key={timeline.id}
                       className="graph-card"
-                      onClick={() => navigate(`/timeline/${timeline.slug}`)}
+                      onClick={() => navigate(`/predictions/${timeline.slug}`)}
                     >
                       <h3>{timeline.topic}</h3>
                       <p className="graph-card-summary">Tracking: {timeline.valueLabel}</p>

@@ -5,6 +5,7 @@ import { HomePage } from './pages/HomePage';
 import { GraphViewPage } from './pages/GraphViewPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SearchPage } from './pages/SearchPage';
+import { KnowledgeGraphPage } from './pages/KnowledgeGraphPage';
 import { PredictionPage } from './pages/PredictionPage';
 import './App.css';
 
@@ -19,8 +20,9 @@ function App() {
             <Route path="/graph/:slug" element={<GraphViewPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/search" element={<SearchPage />} />
-            <Route path="/timeline" element={<PredictionPage />} />
-            <Route path="/timeline/:slug" element={<PredictionPage />} />
+            <Route path="/knowledge-graph" element={<KnowledgeGraphPage />} />
+            <Route path="/predictions" element={<PredictionPage />} />
+            <Route path="/predictions/:slug" element={<PredictionPage />} />
           </Routes>
         </div>
       </Router>

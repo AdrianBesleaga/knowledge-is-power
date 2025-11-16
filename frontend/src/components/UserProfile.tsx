@@ -157,7 +157,7 @@ export const UserProfile = () => {
             <button
               className="dropdown-item"
               onClick={() => {
-                navigate('/timeline');
+                navigate('/predictions');
                 setIsOpen(false);
               }}
             >

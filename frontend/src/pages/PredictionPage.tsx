@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
-import { generateTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions, deleteTimeline } from '../services/api';
+import { generateTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions, deleteTimeline, getPopularTimelines } from '../services/api';
 import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
 import { TimelineChart } from '../components/TimelineChart';
 import { VerticalTimelineChart } from '../components/VerticalTimelineChart';
@@ -23,6 +23,8 @@ export const PredictionPage = () => {
   const [reprocessing, setReprocessing] = useState(false);
   const [savedTimelines, setSavedTimelines] = useState<TimelineAnalysis[]>([]);
   const [loadingTimelines, setLoadingTimelines] = useState(false);
+  const [popularTimelines, setPopularTimelines] = useState<TimelineAnalysis[]>([]);
+  const [loadingPopularTimelines, setLoadingPopularTimelines] = useState(false);
   const [reprocessedData, setReprocessedData] = useState<{ presentEntry: TimelineEntry; predictions: Prediction[] } | null>(null);
   const [versions, setVersions] = useState<TimelineVersion[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
@@ -32,6 +34,25 @@ export const PredictionPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const [showPredictionModal, setShowPredictionModal] = useState(false);
+
+  // Load popular timelines when no slug
+  useEffect(() => {
+    const loadPopularTimelines = async () => {
+      if (slug) return;
+
+      try {
+        setLoadingPopularTimelines(true);
+        const result = await getPopularTimelines(30, 30); // Top 30 from last 30 days
+        setPopularTimelines(result.timelines);
+      } catch (err) {
+        console.error('Error loading popular timelines:', err);
+      } finally {
+        setLoadingPopularTimelines(false);
+      }
+    };
+
+    loadPopularTimelines();
+  }, [slug]);
 
   // Load saved timelines when no slug and user is logged in
   useEffect(() => {
@@ -97,7 +118,7 @@ export const PredictionPage = () => {
   useEffect(() => {
     const loadTimeline = async () => {
       if (!slug) {
-        // Clear timeline state when navigating back to /timeline without slug
+        // Clear timeline state when navigating back to /predictions without slug
         setTimeline(null);
         setReprocessedData(null);
         return;
@@ -327,7 +348,7 @@ export const PredictionPage = () => {
       await deleteTimeline(slug);
       
       // Navigate back to timeline list after successful deletion
-      navigate('/timeline');
+      navigate('/predictions');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to delete timeline');
       console.error('Error deleting timeline:', err);
@@ -367,7 +388,54 @@ export const PredictionPage = () => {
           {error && <div className="error-banner">{error}</div>}
         </div>
 
-        {showSavedTimelines && (
+        {!slug && (
+          <>
+            <div className="popular-timelines-section">
+              <div className="section-header">
+                <h2>Top 30 AI Predictions</h2>
+                <p className="section-subtitle">Most viewed AI predictions from the last 30 days</p>
+              </div>
+
+              {loadingPopularTimelines ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>Loading popular AI predictions...</p>
+                </div>
+              ) : popularTimelines.length > 0 ? (
+                <div className="timelines-grid">
+                  {popularTimelines.map((timeline) => (
+                    <div
+                      key={timeline.id}
+                      className="timeline-card"
+                      onClick={() => navigate(`/predictions/${timeline.slug}`)}
+                    >
+                      <h3>{timeline.topic}</h3>
+                      <p className="timeline-card-value-label">Tracking: {timeline.valueLabel}</p>
+                      <div className="timeline-card-meta">
+                        <span className="date">
+                          {new Date(timeline.createdAt).toLocaleDateString()}
+                        </span>
+                        <span>•</span>
+                        <span className="views">{timeline.viewCount} views</span>
+                      </div>
+                      <div className="timeline-card-footer">
+                        <span className={`visibility-badge ${timeline.isPublic ? 'public' : 'private'}`}>
+                          {timeline.isPublic ? '🌐 Public' : '🔒 Private'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-icon">📈</div>
+                  <h3>No popular AI predictions yet</h3>
+                  <p>Be the first to create and share an AI prediction!</p>
+                </div>
+              )}
+            </div>
+
+            {showSavedTimelines && (
           <div className="saved-timelines-section">
             <div className="section-header">
               <h2>My AI Predictions</h2>
@@ -385,7 +453,7 @@ export const PredictionPage = () => {
                   <div
                     key={savedTimeline.id}
                     className="timeline-card"
-                    onClick={() => navigate(`/timeline/${savedTimeline.slug}`)}
+                    onClick={() => navigate(`/predictions/${savedTimeline.slug}`)}
                   >
                     <h3>{savedTimeline.topic}</h3>
                     <p className="timeline-card-value-label">Tracking: {savedTimeline.valueLabel}</p>
@@ -412,6 +480,8 @@ export const PredictionPage = () => {
               </div>
             )}
           </div>
+            )}
+          </>
         )}
 
         {loading && !timeline && (
@@ -435,7 +505,7 @@ export const PredictionPage = () => {
               <div className="timeline-actions">
                 {slug && (
                   <ShareButton
-                    url={`/timeline/${slug}`}
+                    url={`/predictions/${slug}`}
                     slug={slug}
                     timeline={timeline}
                     onVisibilityChange={handleTimelineVisibilityChange}

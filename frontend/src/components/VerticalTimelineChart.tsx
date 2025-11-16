@@ -29,6 +29,24 @@ export const VerticalTimelineChart = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Scroll to start of predictions on mount
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    // Find the first prediction item - it's after past entries and present entry
+    const firstPredictionIndex = pastEntries.length + 1;
+    
+    setTimeout(() => {
+      if (itemRefs.current[firstPredictionIndex]) {
+        const predictionElement = itemRefs.current[firstPredictionIndex];
+        if (predictionElement) {
+          container.scrollTop = predictionElement.offsetTop;
+        }
+      }
+    }, 50);
+  }, [pastEntries.length]);
+
 
   // Helper function to parse timeline string and convert to Date
   const parseTimelineToDate = (timeline: string, baseDate: Date): Date => {

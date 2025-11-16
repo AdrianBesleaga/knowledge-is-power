@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { TimelineEntry, Prediction } from '../types/timeline';
+import { Sources } from './Sources';
 import './VerticalTimelineChart.css';
 
 interface VerticalTimelineChartProps {
@@ -294,27 +295,7 @@ export const VerticalTimelineChart = ({
                         <div className="historical-summary">{data.summary}</div>
                       )}
                       {data.sources && data.sources.length > 0 && (
-                        <div className="historical-sources">
-                          <div className="sources-label">Sources:</div>
-                          <div className="sources-list">
-                            {data.sources.slice(0, 2).map((source: string, index: number) => (
-                              <a
-                                key={index}
-                                href={source}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="source-link"
-                                onClick={(e) => e.stopPropagation()}
-                                title={source}
-                              >
-                                {source.length > 40 ? `${source.substring(0, 37)}...` : source}
-                              </a>
-                            ))}
-                            {data.sources.length > 2 && (
-                              <span className="sources-more">+{data.sources.length - 2} more</span>
-                            )}
-                          </div>
-                        </div>
+                        <Sources sources={data.sources} className="vertical" />
                       )}
                     </div>
                   </div>
@@ -333,31 +314,12 @@ export const VerticalTimelineChart = ({
                           )}
                           {data.optimisticConfidence !== undefined && (
                             <div className="prediction-confidence">
-                              Confidence: <span className="confidence-value" style={{ color: getConfidenceColor(data.optimisticConfidence) }}>{data.optimisticConfidence}%</span>
+                              <span className="confidence-label">Confidence:</span>
+                              <span className="confidence-value" style={{ color: getConfidenceColor(data.optimisticConfidence) }}>{data.optimisticConfidence}%</span>
                             </div>
                           )}
                           {data.optimisticSources && data.optimisticSources.length > 0 && (
-                            <div className="prediction-sources">
-                              <div className="sources-label">Sources:</div>
-                              <div className="sources-list">
-                                {data.optimisticSources.slice(0, 2).map((source: string, index: number) => (
-                                  <a
-                                    key={index}
-                                    href={source}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="source-link"
-                                    onClick={(e) => e.stopPropagation()}
-                                    title={source}
-                                  >
-                                    {source.length > 40 ? `${source.substring(0, 37)}...` : source}
-                                  </a>
-                                ))}
-                                {data.optimisticSources.length > 2 && (
-                                  <span className="sources-more">+{data.optimisticSources.length - 2} more</span>
-                                )}
-                              </div>
-                            </div>
+                            <Sources sources={data.optimisticSources} className="vertical" />
                           )}
                         </div>
                       )}
@@ -370,31 +332,12 @@ export const VerticalTimelineChart = ({
                           )}
                           {data.neutralConfidence !== undefined && (
                             <div className="prediction-confidence">
-                              Confidence: <span className="confidence-value" style={{ color: getConfidenceColor(data.neutralConfidence) }}>{data.neutralConfidence}%</span>
+                              <span className="confidence-label">Confidence:</span>
+                              <span className="confidence-value" style={{ color: getConfidenceColor(data.neutralConfidence) }}>{data.neutralConfidence}%</span>
                             </div>
                           )}
                           {data.neutralSources && data.neutralSources.length > 0 && (
-                            <div className="prediction-sources">
-                              <div className="sources-label">Sources:</div>
-                              <div className="sources-list">
-                                {data.neutralSources.slice(0, 2).map((source: string, index: number) => (
-                                  <a
-                                    key={index}
-                                    href={source}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="source-link"
-                                    onClick={(e) => e.stopPropagation()}
-                                    title={source}
-                                  >
-                                    {source.length > 40 ? `${source.substring(0, 37)}...` : source}
-                                  </a>
-                                ))}
-                                {data.neutralSources.length > 2 && (
-                                  <span className="sources-more">+{data.neutralSources.length - 2} more</span>
-                                )}
-                              </div>
-                            </div>
+                            <Sources sources={data.neutralSources} className="vertical" />
                           )}
                         </div>
                       )}
@@ -407,31 +350,12 @@ export const VerticalTimelineChart = ({
                           )}
                           {data.pessimisticConfidence !== undefined && (
                             <div className="prediction-confidence">
-                              Confidence: <span className="confidence-value" style={{ color: getConfidenceColor(data.pessimisticConfidence) }}>{data.pessimisticConfidence}%</span>
+                              <span className="confidence-label">Confidence:</span>
+                              <span className="confidence-value" style={{ color: getConfidenceColor(data.pessimisticConfidence) }}>{data.pessimisticConfidence}%</span>
                             </div>
                           )}
                           {data.pessimisticSources && data.pessimisticSources.length > 0 && (
-                            <div className="prediction-sources">
-                              <div className="sources-label">Sources:</div>
-                              <div className="sources-list">
-                                {data.pessimisticSources.slice(0, 2).map((source: string, index: number) => (
-                                  <a
-                                    key={index}
-                                    href={source}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="source-link"
-                                    onClick={(e) => e.stopPropagation()}
-                                    title={source}
-                                  >
-                                    {source.length > 40 ? `${source.substring(0, 37)}...` : source}
-                                  </a>
-                                ))}
-                                {data.pessimisticSources.length > 2 && (
-                                  <span className="sources-more">+{data.pessimisticSources.length - 2} more</span>
-                                )}
-                              </div>
-                            </div>
+                            <Sources sources={data.pessimisticSources} className="vertical" />
                           )}
                         </div>
                       )}

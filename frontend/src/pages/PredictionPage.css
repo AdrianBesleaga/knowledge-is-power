@@ -4,7 +4,7 @@
 }
 
 .prediction-main {
-  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -277,8 +277,9 @@
 }
 
 .timeline-chart-container {
+  width: 100%;
   margin: 2rem 0;
-  padding: 2rem;
+  padding: 0;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -559,7 +560,7 @@
 
   .timeline-chart-container {
     margin: 1.5rem 0;
-    padding: 1rem;
+    padding: 0;
   }
 
   .timeline-slider-container {

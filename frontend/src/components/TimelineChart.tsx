@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { TimelineEntry, Prediction } from '../types/timeline';
+import { Sources } from './Sources';
 import './TimelineChart.css';
 
 interface TimelineChartProps {
@@ -74,27 +75,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           </div>
         )}
         {hasSources && (
-          <div className="tooltip-sources-section">
-            <div className="tooltip-sources-label">Sources</div>
-            <div className="tooltip-sources-list">
-              {data.sources.slice(0, 2).map((source: string, index: number) => (
-                <a 
-                  key={index}
-                  href={source} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="tooltip-source-link"
-                  onClick={(e) => e.stopPropagation()}
-                  title={source}
-                >
-                  {source.length > 40 ? `${source.substring(0, 37)}...` : source}
-                </a>
-              ))}
-              {data.sources.length > 2 && (
-                <span className="tooltip-sources-more">+{data.sources.length - 2} more</span>
-              )}
-            </div>
-          </div>
+          <Sources sources={data.sources} className="tooltip" />
         )}
       </div>
     );
@@ -231,27 +212,7 @@ const PredictionInlineDisplay = ({ prediction, onPredictionClick }: PredictionIn
               </div>
             )}
             {scenario.sources && Array.isArray(scenario.sources) && scenario.sources.length > 0 && (
-              <div className="scenario-inline-sources">
-                <div className="scenario-inline-sources-label">Sources:</div>
-                <div className="scenario-inline-sources-list">
-                  {scenario.sources.slice(0, 2).map((source: string, index: number) => (
-                    <a
-                      key={index}
-                      href={source}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="scenario-inline-source-link"
-                      onClick={(e) => e.stopPropagation()}
-                      title={source}
-                    >
-                      {source.length > 40 ? `${source.substring(0, 37)}...` : source}
-                    </a>
-                  ))}
-                  {scenario.sources.length > 2 && (
-                    <span className="scenario-inline-sources-more">+{scenario.sources.length - 2} more</span>
-                  )}
-                </div>
-              </div>
+              <Sources sources={scenario.sources} className="inline" />
             )}
             <div className="scenario-inline-confidence">
               <span 
@@ -338,13 +299,13 @@ export const TimelineChart = ({
     originalLabel?: string;
     prediction?: Prediction; // Store full prediction object
     summary?: string; // Summary for historical/present entries
-    sources?: string[]; // Sources for historical/present entries
+      sources?: string[]; // Sources for historical/present entries
   }> = [];
 
   const presentDate = new Date(presentEntry.date);
 
   // Add past entries
-  pastEntries.forEach((entry) => {
+  pastEntries.forEach((entry, index) => {
     const date = new Date(entry.date);
     chartData.push({
       date,
@@ -746,7 +707,7 @@ export const TimelineChart = ({
         <p className="chart-subtitle">{valueLabel}</p>
       </div>
       <div className="chart-container-wrapper" ref={chartContainerRef} style={{ position: 'relative' }}>
-        <div className="chart-scrollable-content" style={{ minWidth: isMobile && chartData.length > 8 ? `${Math.max(600, chartData.length * 80)}px` : '100%' }}>
+        <div className="chart-scrollable-content">
           <ResponsiveContainer width="100%" height={isMobile ? 350 : 450}>
           <LineChart 
             data={chartData} 
@@ -788,7 +749,7 @@ export const TimelineChart = ({
               strokeWidth={3}
               dot={{ r: 5, fill: '#667eea' }}
               activeDot={{ r: 7 }}
-              name="Historical & Present"
+              name="Past"
               connectNulls={false}
               strokeLinecap="round"
             />

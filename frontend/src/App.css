@@ -7,21 +7,6 @@ body {
   transition: background-color 0.3s ease;
 }
 
-
-/* Fix for Tailwind text color overrides */
-.text-gray-700 {
-  color: rgb(229, 231, 235) !important;
-}
-
-/* Ensure logo text gradients work in dark mode */
-.text-blue-400 {
-  color: rgb(147, 197, 253) !important; /* blue-300 equivalent */
-}
-
-.text-blue-300 {
-  color: rgb(147, 197, 253) !important;
-}
-
 /* Ensure all page containers inherit the app background */
 [class$='-page'] {
   background: transparent;
@@ -281,6 +266,3 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
-
-
-

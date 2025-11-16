@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../hooks/useAuth';
-import './AuthModal.css';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -55,22 +54,37 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
   };
 
   const modalContent = (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 py-8 animate-in fade-in duration-200 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-gray-900 border border-gray-700 rounded-xl p-8 max-w-md w-full max-h-[calc(100vh-4rem)] overflow-y-auto relative animate-in slide-in-from-bottom-8 duration-300 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          onClick={onClose}
+        >
           ×
         </button>
 
-        <h2>{isSignIn ? 'Sign In' : 'Sign Up'}</h2>
-        <p className="modal-subtitle">
+        <h2 className="text-2xl font-bold text-white mb-2">{isSignIn ? 'Sign In' : 'Sign Up'}</h2>
+        <p className="text-gray-400 text-sm mb-6">
           {isSignIn ? 'Welcome back!' : 'Create an account to save graphs'}
         </p>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg mb-4 text-sm">
+            {error}
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-semibold text-gray-200 mb-2">
+              Email
+            </label>
             <input
               id="email"
               type="email"
@@ -78,11 +92,14 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="your@email.com"
+              className="w-full px-3 py-2 bg-gray-800 border-2 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
+          <div>
+            <label htmlFor="password" className="block text-sm font-semibold text-gray-200 mb-2">
+              Password
+            </label>
             <input
               id="password"
               type="password"
@@ -91,23 +108,33 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
               required
               placeholder="••••••••"
               minLength={6}
+              className="w-full px-3 py-2 bg-gray-800 border-2 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
             />
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={loading}>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
             {loading ? 'Loading...' : isSignIn ? 'Sign In' : 'Sign Up'}
           </button>
         </form>
 
-        <div className="divider">
-          <span>OR</span>
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-600"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-gray-900 text-gray-400">OR</span>
+          </div>
         </div>
 
         <button
           type="button"
-          className="btn btn-google"
           onClick={handleGoogleSignIn}
           disabled={loading}
+          className="w-full bg-white text-gray-900 border-2 border-gray-300 py-3 px-4 rounded-lg font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           <svg width="18" height="18" viewBox="0 0 18 18">
             <path
@@ -130,11 +157,11 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
           Continue with Google
         </button>
 
-        <div className="auth-toggle">
+        <div className="text-center mt-6 text-sm text-gray-400">
           {isSignIn ? "Don't have an account? " : 'Already have an account? '}
           <button
             type="button"
-            className="link-button"
+            className="text-blue-400 hover:text-blue-300 font-semibold underline"
             onClick={() => {
               setIsSignIn(!isSignIn);
               setError('');

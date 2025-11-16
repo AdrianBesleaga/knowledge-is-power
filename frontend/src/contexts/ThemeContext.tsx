@@ -18,9 +18,18 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const root = window.document.documentElement;
+
+    // Remove both classes first
     root.classList.remove('light', 'dark');
+
+    // Add the current theme
     root.classList.add(theme);
+
+    // Save to localStorage
     localStorage.setItem('theme', theme);
+
+    // Update data attribute for better CSS targeting
+    root.setAttribute('data-theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {

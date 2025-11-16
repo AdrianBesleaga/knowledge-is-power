@@ -33,7 +33,7 @@ export const saveGraph = async (
   topic: string,
   nodes: GraphNode[],
   edges: GraphEdge[],
-  isPublic: boolean = true,
+  visibility: 'private' | 'public' | 'premium' = 'private',
   summary: string = ''
 ): Promise<{
   success: boolean;
@@ -45,14 +45,22 @@ export const saveGraph = async (
     summary,
     nodes,
     edges,
-    isPublic,
+    visibility,
   });
   return response.data;
 };
 
 export const getGraphBySlug = async (slug: string): Promise<KnowledgeGraph> => {
-  const response = await api.get(`/api/graph/${slug}`);
-  return response.data.graph;
+  try {
+    const response = await api.get(`/api/graph/${slug}`);
+    return response.data.graph;
+  } catch (error: any) {
+    // Handle premium content that requires payment
+    if (error.response?.status === 402 && error.response?.data?.code === 'PREMIUM_CONTENT') {
+      throw error; // Re-throw to be handled by the UI
+    }
+    throw error;
+  }
 };
 
 export const getUserGraphs = async (): Promise<KnowledgeGraph[]> => {
@@ -68,9 +76,28 @@ export const getUserTimelines = async (): Promise<TimelineAnalysis[]> => {
 export const getUserProfile = async (): Promise<{
   uid: string;
   email: string;
+  credits: number;
 }> => {
   const response = await api.get('/api/user/profile');
   return response.data.user;
+};
+
+export const getUserCredits = async (): Promise<number> => {
+  const response = await api.get('/api/user/credits');
+  return response.data.credits;
+};
+
+export interface CreditTransaction {
+  timestamp: string;
+  action: 'deduct' | 'add' | 'initial';
+  amount: number;
+  description: string;
+  remainingCredits: number;
+}
+
+export const getCreditHistory = async (limit: number = 50): Promise<CreditTransaction[]> => {
+  const response = await api.get('/api/user/credits/history', { params: { limit } });
+  return response.data.history;
 };
 
 export interface SearchGraphsResponse {
@@ -147,16 +174,27 @@ export const getPopularGraphs = async (
 
 export const updateGraphVisibility = async (
   slug: string,
-  isPublic: boolean
+  visibility: 'private' | 'public' | 'premium'
 ): Promise<{ success: boolean; graph: KnowledgeGraph }> => {
   const response = await api.patch(`/api/graph/${slug}/visibility`, {
-    isPublic,
+    visibility,
   });
   return response.data;
 };
 
+// Premium content payment methods
+export const unlockPremiumGraph = async (slug: string): Promise<KnowledgeGraph> => {
+  const response = await api.post(`/api/graph/${slug}/unlock`);
+  return response.data.graph;
+};
+
+export const unlockPremiumTimeline = async (slug: string): Promise<TimelineAnalysis> => {
+  const response = await api.post(`/api/timeline/${slug}/unlock`);
+  return response.data.timeline;
+};
+
 // Timeline API methods
-export const generateTimeline = async (topic: string, isPublic?: boolean): Promise<{
+export const generateTimeline = async (topic: string, visibility?: 'private' | 'public' | 'premium'): Promise<{
   success: boolean;
   topic: string;
   valueLabel: string;
@@ -166,7 +204,7 @@ export const generateTimeline = async (topic: string, isPublic?: boolean): Promi
   timeline: TimelineAnalysis;
   url: string;
 }> => {
-  const response = await api.post('/api/timeline/generate', { topic, isPublic });
+  const response = await api.post('/api/timeline/generate', { topic, visibility });
   return response.data;
 };
 
@@ -176,7 +214,7 @@ export const saveTimeline = async (
   pastEntries: TimelineEntry[],
   presentEntry: TimelineEntry,
   predictions: Prediction[],
-  isPublic: boolean = false
+  visibility: 'private' | 'public' | 'premium' = 'private'
 ): Promise<{
   success: boolean;
   timeline: TimelineAnalysis;
@@ -188,7 +226,7 @@ export const saveTimeline = async (
     pastEntries,
     presentEntry,
     predictions,
-    isPublic,
+    visibility,
   });
   return response.data;
 };
@@ -223,10 +261,10 @@ export const getTimelineByTopic = async (
 
 export const updateTimelineVisibility = async (
   slug: string,
-  isPublic: boolean
+  visibility: 'private' | 'public' | 'premium'
 ): Promise<{ success: boolean; timeline: TimelineAnalysis }> => {
   const response = await api.patch(`/api/timeline/${slug}/visibility`, {
-    isPublic,
+    visibility,
   });
   return response.data;
 };
@@ -279,9 +317,17 @@ export const getTimelineVersions = async (
 };
 
 export const getTimelineBySlug = async (slug: string, version?: number): Promise<TimelineAnalysis> => {
-  const params = version ? { version } : {};
-  const response = await api.get(`/api/timeline/${slug}`, { params });
-  return response.data.timeline;
+  try {
+    const params = version ? { version } : {};
+    const response = await api.get(`/api/timeline/${slug}`, { params });
+    return response.data.timeline;
+  } catch (error: any) {
+    // Handle premium content that requires payment
+    if (error.response?.status === 402 && error.response?.data?.code === 'PREMIUM_CONTENT') {
+      throw error; // Re-throw to be handled by the UI
+    }
+    throw error;
+  }
 };
 
 export const deleteTimeline = async (slug: string): Promise<{ success: boolean; message: string }> => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SearchBar } from '../components/SearchBar';
 import { generateTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions, deleteTimeline, getPopularTimelines } from '../services/api';
@@ -6,6 +6,7 @@ import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '..
 import { TimelineChart } from '../components/TimelineChart';
 import { VerticalTimelineChart } from '../components/VerticalTimelineChart';
 import { ShareButton } from '../components/ShareButton';
+import { PremiumContentOverlay } from '../components/PremiumContentOverlay';
 import { AuthModal } from '../components/AuthModal';
 import { PredictionModal } from '../components/PredictionModal';
 import { useAuth } from '../hooks/useAuth';
@@ -34,6 +35,9 @@ export const PredictionPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const [showPredictionModal, setShowPredictionModal] = useState(false);
+  const [isPremiumLocked, setIsPremiumLocked] = useState(false);
+  const [premiumTimelineData, setPremiumTimelineData] = useState<any>(null);
+  const loadedSlugRef = useRef<string | null>(null);
 
   // Load popular timelines when no slug
   useEffect(() => {
@@ -77,7 +81,7 @@ export const PredictionPage = () => {
     };
 
     loadSavedTimelines();
-  }, [slug, user, getIdToken]);
+  }, [slug, user]);
 
   // Load versions when timeline is loaded and user owns it
   useEffect(() => {
@@ -112,15 +116,25 @@ export const PredictionPage = () => {
     };
 
     loadVersions();
-  }, [slug, user, timeline, getIdToken]);
+  }, [slug, user, timeline]);
 
   // Load timeline by slug if provided
   useEffect(() => {
+    console.log('Timeline useEffect triggered:', { slug, selectedVersion, user: !!user, isPremiumLocked, loadedSlug: loadedSlugRef.current });
     const loadTimeline = async () => {
       if (!slug) {
         // Clear timeline state when navigating back to /predictions without slug
         setTimeline(null);
         setReprocessedData(null);
+        setIsPremiumLocked(false);
+        setPremiumTimelineData(null);
+        loadedSlugRef.current = null;
+        return;
+      }
+
+      // Don't load if we already loaded this slug
+      if (loadedSlugRef.current === slug) {
+        console.log('Skipping load - already loaded this slug');
         return;
       }
 
@@ -137,9 +151,28 @@ export const PredictionPage = () => {
 
         // Load timeline with selected version (or latest if none selected)
         const versionToLoad = selectedVersion || undefined;
-        const loadedTimeline = await getTimelineBySlug(slug, versionToLoad);
-        setTimeline(loadedTimeline);
-        setReprocessedData(null); // Clear any reprocessed data when loading a timeline
+
+        try {
+          const loadedTimeline = await getTimelineBySlug(slug, versionToLoad);
+          setTimeline(loadedTimeline);
+          setIsPremiumLocked(false);
+          setPremiumTimelineData(null);
+          setReprocessedData(null); // Clear any reprocessed data when loading a timeline
+          loadedSlugRef.current = slug; // Mark as loaded
+          console.log('Timeline loaded successfully:', loadedTimeline?.topic, 'visibility:', loadedTimeline?.visibility);
+        } catch (err: any) {
+          // Handle premium content that requires payment
+          if (err.response?.status === 402 && err.response?.data?.code === 'PREMIUM_CONTENT') {
+            setIsPremiumLocked(true);
+            setPremiumTimelineData(err.response.data.timeline);
+            setTimeline(null);
+            setError(null);
+            loadedSlugRef.current = slug; // Mark as loaded (with premium data)
+            console.log('Premium timeline detected, data loaded');
+          } else {
+            throw err;
+          }
+        }
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load timeline');
         console.error('Error loading timeline:', err);
@@ -149,7 +182,7 @@ export const PredictionPage = () => {
     };
 
     loadTimeline();
-  }, [slug, user, getIdToken, selectedVersion]);
+  }, [slug, user, selectedVersion]);
 
   // Auto-generate timeline after successful authentication if there's a pending topic
   useEffect(() => {
@@ -174,6 +207,14 @@ export const PredictionPage = () => {
           if (err.response?.status === 401) {
             setError('Please sign in to generate timelines');
             setShowAuthModal(true);
+          } else if (err.response?.status === 402) {
+            setError(err.response?.data?.message || 'Insufficient credits. Please buy more credits to continue.');
+            // Show error with link to buy credits
+            setTimeout(() => {
+              if (window.confirm('You have run out of credits. Would you like to buy more credits?')) {
+                navigate('/buy-credits');
+              }
+            }, 500);
           } else {
             setError(err.response?.data?.error || 'Failed to generate timeline');
           }
@@ -209,6 +250,14 @@ export const PredictionPage = () => {
       if (err.response?.status === 401) {
         setError('Please sign in to generate timelines');
         setShowAuthModal(true);
+      } else if (err.response?.status === 402) {
+        setError(err.response?.data?.message || 'Insufficient credits. Please buy more credits to continue.');
+        // Show error with link to buy credits
+        setTimeout(() => {
+          if (window.confirm('You have run out of credits. Would you like to buy more credits?')) {
+            navigate('/buy-credits');
+          }
+        }, 500);
       } else {
         setError(err.response?.data?.error || 'Failed to generate timeline');
       }
@@ -294,7 +343,8 @@ export const PredictionPage = () => {
 
   const handleVersionChange = async (version: number) => {
     if (!slug) return;
-    
+
+    console.log('Version change triggered:', version);
     setSelectedVersion(version);
     setLoading(true);
     setError(null);
@@ -305,9 +355,11 @@ export const PredictionPage = () => {
         setAuthToken(token);
       }
 
+      console.log('Making API call for version change:', slug, version);
       const loadedTimeline = await getTimelineBySlug(slug, version);
       setTimeline(loadedTimeline);
       setReprocessedData(null);
+      // Note: loadedSlugRef stays the same since it's the same slug, just different version
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load version');
       console.error('Error loading version:', err);
@@ -318,9 +370,9 @@ export const PredictionPage = () => {
 
 
   // Handle timeline visibility change
-  const handleTimelineVisibilityChange = (isPublic: boolean) => {
+  const handleTimelineVisibilityChange = (visibility: 'private' | 'public' | 'premium') => {
     if (timeline) {
-      setTimeline({ ...timeline, isPublic });
+      setTimeline({ ...timeline, visibility });
     }
   };
 
@@ -331,8 +383,14 @@ export const PredictionPage = () => {
   };
 
   // Handle timeline deletion
+  const handlePremiumUnlock = (unlockedTimeline: TimelineAnalysis) => {
+    setTimeline(unlockedTimeline);
+    setIsPremiumLocked(false);
+    setPremiumTimelineData(null);
+  };
+
   const handleDeleteTimeline = async () => {
-    if (!user || !timeline || !slug || timeline.isPublic || timeline.userId !== user.uid) {
+    if (!user || !timeline || !slug || timeline.visibility === 'public' || timeline.userId !== user.uid) {
       return;
     }
 
@@ -419,8 +477,8 @@ export const PredictionPage = () => {
                         <span className="views">{timeline.viewCount} views</span>
                       </div>
                       <div className="timeline-card-footer">
-                        <span className={`visibility-badge ${timeline.isPublic ? 'public' : 'private'}`}>
-                          {timeline.isPublic ? '🌐 Public' : '🔒 Private'}
+                        <span className={`visibility-badge ${timeline.visibility === 'public' ? 'public' : timeline.visibility === 'premium' ? 'premium' : 'private'}`}>
+                          {timeline.visibility === 'public' ? '🌐 Public' : timeline.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                         </span>
                       </div>
                     </div>
@@ -465,8 +523,8 @@ export const PredictionPage = () => {
                       <span className="views">{savedTimeline.viewCount} views</span>
                     </div>
                     <div className="timeline-card-footer">
-                      <span className={`visibility-badge ${savedTimeline.isPublic ? 'public' : 'private'}`}>
-                        {savedTimeline.isPublic ? '🌐 Public' : '🔒 Private'}
+                      <span className={`visibility-badge ${savedTimeline.visibility === 'public' ? 'public' : savedTimeline.visibility === 'premium' ? 'premium' : 'private'}`}>
+                        {savedTimeline.visibility === 'public' ? '🌐 Public' : savedTimeline.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                       </span>
                     </div>
                   </div>
@@ -492,26 +550,27 @@ export const PredictionPage = () => {
           </div>
         )}
 
-        {timeline && (
+        {(timeline || (isPremiumLocked && premiumTimelineData)) && (
           <div className="timeline-section">
             <div className="timeline-header">
               <div>
-                <h3>{timeline.topic}</h3>
-                <p className="value-label">Tracking: {timeline.valueLabel}</p>
-                {timeline.version && (
-                  <p className="version-label">Version {timeline.version}</p>
+                <h3>{isPremiumLocked && premiumTimelineData ? premiumTimelineData.topic : timeline!.topic}</h3>
+                <p className="value-label">Tracking: {isPremiumLocked && premiumTimelineData ? premiumTimelineData.valueLabel : timeline!.valueLabel}</p>
+                {(!isPremiumLocked && timeline!.version) && (
+                  <p className="version-label">Version {timeline!.version}</p>
                 )}
+                {isPremiumLocked && <span className="premium-badge">💎 Premium</span>}
               </div>
               <div className="timeline-actions">
                 {slug && (
                   <ShareButton
                     url={`/predictions/${slug}`}
                     slug={slug}
-                    timeline={timeline}
+                    timeline={isPremiumLocked && premiumTimelineData ? premiumTimelineData : timeline}
                     onVisibilityChange={handleTimelineVisibilityChange}
                   />
                 )}
-                {slug && user && timeline.userId === user.uid && (
+                {slug && user && !isPremiumLocked && timeline!.userId === user.uid && (
                   <>
                     {reprocessedData ? (
                       <button 
@@ -547,7 +606,7 @@ export const PredictionPage = () => {
                     {versions.length > 0 && (
                       <select
                         className="version-selector"
-                        value={selectedVersion || timeline.version || 1}
+                        value={selectedVersion || timeline!.version || 1}
                         onChange={(e) => handleVersionChange(parseInt(e.target.value, 10))}
                         disabled={loadingVersions || loading}
                       >
@@ -558,7 +617,7 @@ export const PredictionPage = () => {
                         ))}
                       </select>
                     )}
-                    {!timeline.isPublic && (
+                    {!isPremiumLocked && timeline!.visibility === 'private' && (
                       <button 
                         className="btn-danger" 
                         onClick={() => setShowDeleteConfirm(true)}
@@ -574,21 +633,54 @@ export const PredictionPage = () => {
             </div>
 
             <div className="timeline-chart-container">
-              <TimelineChart
-                pastEntries={timeline.pastEntries}
-                presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
-                predictions={reprocessedData?.predictions || timeline.predictions}
-                valueLabel={timeline.valueLabel}
-                onPredictionClick={handlePredictionClick}
-              />
+              {isPremiumLocked && premiumTimelineData ? (
+                <PremiumContentOverlay
+                  contentType="timeline"
+                  slug={premiumTimelineData.slug}
+                  topic={premiumTimelineData.topic}
+                  onUnlock={handlePremiumUnlock}
+                >
+                  <TimelineChart
+                    pastEntries={premiumTimelineData.pastEntries || []}
+                    presentEntry={premiumTimelineData.presentEntry || { date: new Date().toISOString(), value: 0, valueLabel: 'Loading...', summary: 'Loading data...' }}
+                    predictions={premiumTimelineData.predictions || []}
+                    valueLabel={premiumTimelineData.valueLabel || 'Loading...'}
+                    onPredictionClick={() => {}}
+                  />
+                </PremiumContentOverlay>
+              ) : (
+                <TimelineChart
+                  pastEntries={timeline!.pastEntries}
+                  presentEntry={reprocessedData?.presentEntry || timeline!.presentEntry}
+                  predictions={reprocessedData?.predictions || timeline!.predictions}
+                  valueLabel={timeline!.valueLabel}
+                  onPredictionClick={handlePredictionClick}
+                />
+              )}
             </div>
             <div className="timeline-chart-container">
-              <VerticalTimelineChart
-                pastEntries={timeline.pastEntries}
-                presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
-                predictions={reprocessedData?.predictions || timeline.predictions}
-                valueLabel={timeline.valueLabel}
-              />
+              {isPremiumLocked && premiumTimelineData ? (
+                <PremiumContentOverlay
+                  contentType="timeline"
+                  slug={premiumTimelineData.slug}
+                  topic={premiumTimelineData.topic}
+                  onUnlock={handlePremiumUnlock}
+                >
+                  <VerticalTimelineChart
+                    pastEntries={premiumTimelineData.pastEntries || []}
+                    presentEntry={premiumTimelineData.presentEntry || { date: new Date().toISOString(), value: 0, valueLabel: 'Loading...', summary: 'Loading data...' }}
+                    predictions={premiumTimelineData.predictions || []}
+                    valueLabel={premiumTimelineData.valueLabel || 'Loading...'}
+                  />
+                </PremiumContentOverlay>
+              ) : (
+                <VerticalTimelineChart
+                  pastEntries={timeline!.pastEntries}
+                  presentEntry={reprocessedData?.presentEntry || timeline!.presentEntry}
+                  predictions={reprocessedData?.predictions || timeline!.predictions}
+                  valueLabel={timeline!.valueLabel}
+                />
+              )}
             </div>
           </div>
         )}

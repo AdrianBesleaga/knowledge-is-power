@@ -5,6 +5,7 @@ import { KnowledgeGraph as KnowledgeGraphType, GraphNode } from '../types/graph'
 import { KnowledgeGraph } from '../components/KnowledgeGraph';
 import { NodeDetailPanel } from '../components/NodeDetailPanel';
 import { ShareButton } from '../components/ShareButton';
+import { PremiumContentOverlay } from '../components/PremiumContentOverlay';
 import { useAuth } from '../hooks/useAuth';
 import './GraphViewPage.css';
 
@@ -17,6 +18,8 @@ export const GraphViewPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [isPremiumLocked, setIsPremiumLocked] = useState(false);
+  const [premiumGraphData, setPremiumGraphData] = useState<any>(null);
 
   useEffect(() => {
     const loadGraph = async () => {
@@ -35,18 +38,32 @@ export const GraphViewPage = () => {
           }
         }
 
-        const loadedGraph = await getGraphBySlug(slug);
-        setGraph(loadedGraph);
-        
-        // Update page title for SEO
-        document.title = `${loadedGraph.topic} - Knowledge is Power`;
-
-        // Load related graphs
         try {
-          const related = await getRelatedGraphs(slug, 6);
-          setRelatedGraphs(related.graphs);
-        } catch (err) {
-          console.error('Error loading related graphs:', err);
+          const loadedGraph = await getGraphBySlug(slug);
+          setGraph(loadedGraph);
+
+          // Update page title for SEO
+          document.title = `${loadedGraph.topic} - Knowledge is Power`;
+
+          // Load related graphs
+          try {
+            const related = await getRelatedGraphs(slug, 6);
+            setRelatedGraphs(related.graphs);
+          } catch (err) {
+            console.error('Error loading related graphs:', err);
+          }
+        } catch (err: any) {
+          // Handle premium content that requires payment
+          if (err.response?.status === 402 && err.response?.data?.code === 'PREMIUM_CONTENT') {
+            setIsPremiumLocked(true);
+            setPremiumGraphData(err.response.data.graph);
+            setError(null);
+
+            // Update page title for premium content
+            document.title = `${err.response.data.graph.topic} - Premium Content - Knowledge is Power`;
+          } else {
+            throw err;
+          }
         }
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load knowledge graph');
@@ -58,6 +75,22 @@ export const GraphViewPage = () => {
 
     loadGraph();
   }, [slug, user, getIdToken]);
+
+  const handlePremiumUnlock = (unlockedGraph: KnowledgeGraphType) => {
+    setGraph(unlockedGraph);
+    setIsPremiumLocked(false);
+    setPremiumGraphData(null);
+
+    // Update page title
+    document.title = `${unlockedGraph.topic} - Knowledge is Power`;
+
+    // Load related graphs
+    getRelatedGraphs(slug!, 6).then(related => {
+      setRelatedGraphs(related.graphs);
+    }).catch(err => {
+      console.error('Error loading related graphs:', err);
+    });
+  };
 
   if (loading) {
     return (
@@ -89,19 +122,20 @@ export const GraphViewPage = () => {
       <main className="graph-main">
         <div className="graph-info">
           <div>
-            <h2>{graph.topic}</h2>
+            <h2>{isPremiumLocked && premiumGraphData ? premiumGraphData.topic : graph.topic}</h2>
             <div className="graph-meta">
-              <span>{new Date(graph.createdAt).toLocaleDateString()}</span>
+              <span>{new Date(isPremiumLocked && premiumGraphData ? premiumGraphData.createdAt : graph.createdAt).toLocaleDateString()}</span>
               <span>•</span>
-              <span>{graph.viewCount} views</span>
+              <span>{isPremiumLocked && premiumGraphData ? premiumGraphData.viewCount : graph.viewCount} views</span>
+              {(isPremiumLocked || graph.visibility === 'premium') && <span className="premium-badge">💎 Premium</span>}
             </div>
           </div>
-          <ShareButton 
-            url={`/graph/${graph.slug}`} 
+          <ShareButton
+            url={`/graph/${graph.slug}`}
             slug={graph.slug}
-            graph={graph}
-            onVisibilityChange={(isPublic) => {
-              setGraph({ ...graph, isPublic });
+            graph={isPremiumLocked && premiumGraphData ? premiumGraphData : graph}
+            onVisibilityChange={(visibility) => {
+              setGraph({ ...graph, visibility });
             }}
           />
         </div>
@@ -114,11 +148,26 @@ export const GraphViewPage = () => {
         )}
 
         <div className="graph-display">
-          <KnowledgeGraph
-            nodes={graph.nodes}
-            edges={graph.edges}
-            onNodeClick={setSelectedNode}
-          />
+          {isPremiumLocked && premiumGraphData ? (
+            <PremiumContentOverlay
+              contentType="graph"
+              slug={premiumGraphData.slug}
+              topic={premiumGraphData.topic}
+              onUnlock={handlePremiumUnlock}
+            >
+              <KnowledgeGraph
+                nodes={premiumGraphData.nodes || []}
+                edges={premiumGraphData.edges || []}
+                onNodeClick={() => {}}
+              />
+            </PremiumContentOverlay>
+          ) : (
+            <KnowledgeGraph
+              nodes={graph.nodes}
+              edges={graph.edges}
+              onNodeClick={setSelectedNode}
+            />
+          )}
         </div>
 
         <div className="info-text">

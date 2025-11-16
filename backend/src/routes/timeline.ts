@@ -3,16 +3,20 @@ import { predictionService } from '../services/predictionService';
 import { timelineService } from '../services/timelineService';
 import { authenticateToken, optionalAuth, AuthRequest } from '../middleware/auth';
 import { GenerateTimelineRequest } from '../types';
+import { creditService, InsufficientCreditsError } from '../services/creditService';
 
 const router = Router();
 
 /**
  * POST /api/timeline/generate
  * Generate a timeline analysis for a topic and automatically save it (requires authentication)
+ * Costs 1 credit per generation
  */
 router.post('/generate', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { topic, isPublic } = req.body as GenerateTimelineRequest & { isPublic?: boolean };
+    const { topic, visibility } = req.body as GenerateTimelineRequest & { visibility?: 'private' | 'public' | 'premium' };
+
+    console.log(`[Timeline API] Generating timeline for topic "${topic}" with visibility: ${visibility || 'private'}`);
 
     if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
       res.status(400).json({ error: 'Topic is required' });
@@ -27,6 +31,29 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
     if (!req.user) {
       res.status(401).json({ error: 'Authentication required' });
       return;
+    }
+
+    // Ensure user exists in database
+    await creditService.getOrCreateUser(req.user.uid, req.user.email || '');
+
+    // Check and deduct credits (1 credit per timeline/prediction generation)
+    try {
+      const remainingCredits = await creditService.deductCredits(
+        req.user.uid,
+        1,
+        `Generated timeline: "${topic.trim()}"`
+      );
+      console.log(`[API] Credit deducted for user ${req.user.uid}. Remaining: ${remainingCredits}`);
+    } catch (error) {
+      if (error instanceof InsufficientCreditsError) {
+        res.status(402).json({
+          error: 'Insufficient credits',
+          message: error.message,
+          code: 'INSUFFICIENT_CREDITS'
+        });
+        return;
+      }
+      throw error;
     }
 
     console.log(`[API] Timeline generation request received for topic: "${topic.trim()}" by user: ${req.user.uid}`);
@@ -45,7 +72,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
       analysis.presentEntry,
       analysis.predictions,
       req.user.uid,
-      isPublic === true
+      visibility || 'private'
     );
 
     console.log(`[API] Timeline saved successfully with slug: "${savedTimeline.slug}"`);
@@ -75,7 +102,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
  */
 router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { topic, valueLabel, pastEntries, presentEntry, predictions, isPublic } = req.body;
+    const { topic, valueLabel, pastEntries, presentEntry, predictions, visibility } = req.body;
 
     if (!topic || !valueLabel || !pastEntries || !presentEntry || !predictions) {
       res.status(400).json({ error: 'Topic, valueLabel, pastEntries, presentEntry, and predictions are required' });
@@ -95,7 +122,7 @@ router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) 
       presentEntry,
       predictions,
       req.user.uid,
-      isPublic === true
+      visibility || 'private'
     );
 
     res.json({
@@ -192,7 +219,7 @@ router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    console.log(`[API] Timeline retrieval request for slug: "${slug}"${version ? `, version: ${version}` : ' (latest)'}`);
+    console.log(`[API] Timeline retrieval request for slug: "${slug}"${version ? `, version: ${version}` : ' (latest)'} by ${req.user ? `user ${req.user.uid}` : 'anonymous user'}`);
     const timeline = await timelineService.getTimelineBySlug(slug, version);
 
     if (!timeline) {
@@ -201,9 +228,36 @@ router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    // Check if timeline is public or belongs to the requesting user
-    if (!timeline.isPublic && (!req.user || req.user.uid !== timeline.userId)) {
+    // Check visibility permissions
+    if (timeline.visibility === 'private' && (!req.user || req.user.uid !== timeline.userId)) {
       res.status(403).json({ error: 'Access denied to private timeline' });
+      return;
+    }
+
+    // For premium timelines, check if user has paid or owns the timeline
+    if (timeline.visibility === 'premium' && (!req.user || req.user.uid !== timeline.userId)) {
+      console.log(`[Timeline API] Premium timeline "${timeline.slug}" accessed by ${req.user ? `user ${req.user.uid} (type: ${typeof req.user.uid})` : 'anonymous user'}, owner: ${timeline.userId} (type: ${typeof timeline.userId})`);
+      console.log(`[Timeline API] User is owner: ${req.user ? req.user.uid === timeline.userId : false}`);
+      // TODO: Check if user has already paid for this specific timeline view
+      // For now, return a "payment required" response
+      res.status(402).json({
+        error: 'Premium content requires payment',
+        message: 'This premium timeline requires 1 credit to view',
+        code: 'PREMIUM_CONTENT',
+        timeline: {
+          id: timeline.id,
+          slug: timeline.slug,
+          topic: timeline.topic,
+          valueLabel: timeline.valueLabel,
+          visibility: timeline.visibility,
+          viewCount: timeline.viewCount,
+          userId: timeline.userId,
+          createdAt: timeline.createdAt,
+          pastEntries: timeline.pastEntries, // Include data for blurred preview
+          presentEntry: timeline.presentEntry,
+          predictions: timeline.predictions,
+        }
+      });
       return;
     }
 
@@ -227,15 +281,15 @@ router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
 router.patch('/:slug/visibility', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { slug } = req.params;
-    const { isPublic } = req.body;
+    const { visibility } = req.body;
 
     if (!slug) {
       res.status(400).json({ error: 'Slug is required' });
       return;
     }
 
-    if (typeof isPublic !== 'boolean') {
-      res.status(400).json({ error: 'isPublic must be a boolean' });
+    if (!visibility || !['private', 'public', 'premium'].includes(visibility)) {
+      res.status(400).json({ error: 'visibility must be one of: private, public, premium' });
       return;
     }
 
@@ -247,7 +301,7 @@ router.patch('/:slug/visibility', authenticateToken, async (req: AuthRequest, re
     const updatedTimeline = await timelineService.updateTimelineVisibility(
       slug,
       req.user.uid,
-      isPublic
+      visibility as 'private' | 'public' | 'premium'
     );
 
     if (!updatedTimeline) {
@@ -378,7 +432,7 @@ router.post('/:slug/save-version', authenticateToken, async (req: AuthRequest, r
       presentEntry,
       predictions,
       req.user.uid,
-      existingTimeline.isPublic
+      existingTimeline.visibility
     );
 
     console.log(`[API] Timeline version ${version} saved successfully`);
@@ -480,8 +534,8 @@ router.delete('/:slug', authenticateToken, async (req: AuthRequest, res: Respons
     }
 
     // Only allow deletion of private timelines
-    if (existingTimeline.isPublic) {
-      res.status(400).json({ error: 'Cannot delete public timelines. Make it private first.' });
+    if (existingTimeline.visibility !== 'private') {
+      res.status(400).json({ error: 'Cannot delete public or premium timelines. Make it private first.' });
       return;
     }
 
@@ -504,6 +558,97 @@ router.delete('/:slug', authenticateToken, async (req: AuthRequest, res: Respons
     res.status(500).json({
       error: 'Failed to delete timeline',
       details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/timeline/:slug/unlock
+ * Pay 1 credit to unlock premium timeline content (requires authentication)
+ */
+router.post('/:slug/unlock', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug) {
+      res.status(400).json({ error: 'Slug is required' });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    console.log(`[API] Premium timeline unlock request for slug: "${slug}" by user: ${req.user.uid}`);
+
+    // Get the timeline first to verify it exists and is premium
+    const timeline = await timelineService.getTimelineBySlug(slug);
+
+    if (!timeline) {
+      console.log(`[API] Timeline not found for slug: "${slug}"`);
+      res.status(404).json({ error: 'Timeline not found' });
+      return;
+    }
+
+    if (timeline.visibility !== 'premium') {
+      res.status(400).json({ error: 'This timeline is not premium content' });
+      return;
+    }
+
+    if (timeline.userId === req.user.uid) {
+      // Owner can access without payment
+      res.json({
+        success: true,
+        timeline,
+      });
+      return;
+    }
+
+    // Check if user has already unlocked this content
+    const alreadyUnlocked = await creditService.hasUnlockedContent(req.user.uid, 'timeline', slug);
+    if (alreadyUnlocked) {
+      console.log(`[API] User ${req.user.uid} already unlocked timeline "${slug}", providing access without additional payment`);
+      res.json({
+        success: true,
+        timeline,
+      });
+      return;
+    }
+
+    // Deduct 1 credit for premium content access
+    try {
+      const remainingCredits = await creditService.deductCredits(
+        req.user.uid,
+        1,
+        `Unlocked premium timeline: "${timeline.topic}"`
+      );
+      console.log(`[API] Credit deducted for premium timeline unlock. Remaining: ${remainingCredits}`);
+
+      // Record that this content has been unlocked
+      await creditService.recordUnlockedContent(req.user.uid, 'timeline', slug, 1);
+    } catch (error) {
+      if (error instanceof InsufficientCreditsError) {
+        res.status(402).json({
+          error: 'Insufficient credits',
+          message: error.message,
+          code: 'INSUFFICIENT_CREDITS'
+        });
+        return;
+      }
+      throw error;
+    }
+
+    // Return the full timeline content
+    res.json({
+      success: true,
+      timeline,
+    });
+  } catch (error) {
+    console.error('Error unlocking premium timeline:', error);
+    res.status(500).json({
+      error: 'Failed to unlock premium timeline',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

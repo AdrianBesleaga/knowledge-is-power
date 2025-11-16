@@ -644,4 +644,15 @@
   }
 }
 
+.premium-badge {
+  background: linear-gradient(135deg, #f3e8ff, #e0e7ff);
+  color: #7c3aed;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  margin-left: 1rem;
+}
+
 

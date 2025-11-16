@@ -9,6 +9,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { SearchPage } from './pages/SearchPage';
 import { KnowledgeGraphPage } from './pages/KnowledgeGraphPage';
 import { PredictionPage } from './pages/PredictionPage';
+import { BuyCreditsPage } from './pages/BuyCreditsPage';
 import './App.css';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
                 <Route path="/knowledge-graph" element={<KnowledgeGraphPage />} />
                 <Route path="/predictions" element={<PredictionPage />} />
                 <Route path="/predictions/:slug" element={<PredictionPage />} />
+                <Route path="/buy-credits" element={<BuyCreditsPage />} />
               </Routes>
             </main>
             <Footer />

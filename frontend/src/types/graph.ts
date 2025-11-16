@@ -14,6 +14,8 @@ export interface GraphEdge {
   strength: number;
 }
 
+export type GraphVisibility = 'private' | 'public' | 'premium';
+
 export interface KnowledgeGraph {
   id: string;
   slug: string;
@@ -24,7 +26,7 @@ export interface KnowledgeGraph {
   edges: GraphEdge[];
   createdAt: string;
   userId: string | null;
-  isPublic: boolean;
+  visibility: GraphVisibility;
   viewCount: number;
 }
 

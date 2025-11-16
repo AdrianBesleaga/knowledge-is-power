@@ -34,3 +34,100 @@
   box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
 }
 
+.visibility-dropdown {
+  position: relative;
+}
+
+.visibility-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.visibility-button:hover {
+  background: #10b981;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.dropdown-arrow {
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.visibility-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  min-width: 280px;
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.dark .visibility-menu {
+  background: rgb(31, 41, 55);
+  border-color: rgb(55, 65, 81);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.visibility-option {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #374151;
+  border-radius: 0;
+  transition: background-color 0.2s;
+}
+
+.dark .visibility-option {
+  color: #e5e7eb;
+}
+
+.visibility-option:hover {
+  background: #f3f4f6;
+}
+
+.dark .visibility-option:hover {
+  background: rgb(55, 65, 81);
+}
+
+.visibility-option.active {
+  background: #10b981;
+  color: white;
+  font-weight: 600;
+}
+
+.visibility-option.active:hover {
+  background: #059669;
+}
+
+.visibility-option:first-child {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.visibility-option:last-child {
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.visibility-option:not(:last-child) {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dark .visibility-option:not(:last-child) {
+  border-bottom-color: rgb(55, 65, 81);
+}
+
+

@@ -89,6 +89,14 @@ export const HomePage = () => {
           if (err.response?.status === 401) {
             setError('Please sign in to generate graphs');
             setShowAuthModal(true);
+          } else if (err.response?.status === 402) {
+            setError(err.response?.data?.message || 'Insufficient credits. Please buy more credits to continue.');
+            // Show error with link to buy credits
+            setTimeout(() => {
+              if (window.confirm('You have run out of credits. Would you like to buy more credits?')) {
+                navigate('/buy-credits');
+              }
+            }, 500);
           } else {
             setError(err.response?.data?.error || 'Failed to generate knowledge graph');
           }
@@ -115,7 +123,7 @@ export const HomePage = () => {
         setAuthToken(token);
       }
 
-      const result = await saveGraph(topic, nodes, edges, false, summary);
+      const result = await saveGraph(topic, nodes, edges, 'private', summary);
       setSavedUrl(result.url);
       
       // Navigate to the saved graph
@@ -266,8 +274,8 @@ export const HomePage = () => {
                         <span className="views">{timeline.viewCount} views</span>
                       </div>
                       <div className="graph-card-footer">
-                        <span className={`visibility-badge ${timeline.isPublic ? 'public' : 'private'}`}>
-                          {timeline.isPublic ? '🌐 Public' : '🔒 Private'}
+                  <span className={`visibility-badge ${timeline.visibility === 'public' ? 'public' : timeline.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {timeline.visibility === 'public' ? '🌐 Public' : timeline.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                         </span>
                       </div>
                     </div>
@@ -301,6 +309,11 @@ export const HomePage = () => {
                       className="graph-card"
                       onClick={() => navigate(`/graph/${graph.slug}`)}
                     >
+                      <div className="visibility-badge-overlay">
+                        <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                          {graph.visibility === 'public' ? '🌐' : graph.visibility === 'premium' ? '💎' : '🔒'}
+                        </span>
+                      </div>
                       <h3>{graph.topic}</h3>
                       {graph.summary && (
                         <p className="graph-card-summary">{graph.summary}</p>
@@ -313,8 +326,8 @@ export const HomePage = () => {
                         <span className="views">{graph.viewCount} views</span>
                       </div>
                       <div className="graph-card-footer">
-                        <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
-                          {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐 Public' : graph.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                         </span>
                       </div>
                     </div>

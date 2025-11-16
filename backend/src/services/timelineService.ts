@@ -1,5 +1,5 @@
 import { getMongoDB } from '../config/mongodb';
-import { TimelineAnalysis, TimelineEntry } from '../types';
+import { TimelineAnalysis, TimelineEntry, GraphVisibility } from '../types';
 import { generateSlug } from '../utils/slugify';
 import { ObjectId } from 'mongodb';
 
@@ -19,7 +19,7 @@ export class TimelineService {
     presentEntry: TimelineEntry,
     predictions: any[],
     userId: string | null,
-    isPublic: boolean = false
+    visibility: GraphVisibility = 'private'
   ): Promise<TimelineAnalysis> {
     const db = await getMongoDB();
     const collection = db.collection(this.COLLECTION_NAME);
@@ -60,7 +60,7 @@ export class TimelineService {
         predictions,
         updatedAt: now,
         userId,
-        isPublic,
+        visibility,
         viewCount,
         createdAt,
         version,
@@ -93,7 +93,7 @@ export class TimelineService {
       createdAt,
       updatedAt: now,
       userId,
-      isPublic,
+      visibility,
       viewCount,
       version,
     };
@@ -169,7 +169,7 @@ export class TimelineService {
     presentEntry: TimelineEntry,
     predictions: any[],
     userId: string | null,
-    isPublic: boolean
+    visibility: GraphVisibility
   ): Promise<{ version: number; timeline: TimelineAnalysis }> {
     const db = await getMongoDB();
     const collection = db.collection(this.COLLECTION_NAME);
@@ -211,7 +211,7 @@ export class TimelineService {
       createdAt, // Preserve original creation date
       updatedAt: now,
       userId,
-      isPublic,
+      visibility,
       viewCount: 0, // New version starts with 0 views
     };
 
@@ -341,7 +341,7 @@ export class TimelineService {
   async updateTimelineVisibility(
     slug: string,
     userId: string,
-    isPublic: boolean
+    visibility: GraphVisibility
   ): Promise<TimelineAnalysis | null> {
     const db = await getMongoDB();
     const collection = db.collection(this.COLLECTION_NAME);
@@ -359,7 +359,7 @@ export class TimelineService {
     // Update all versions to maintain consistency
     await collection.updateMany(
       { slug, userId },
-      { $set: { isPublic, updatedAt: new Date() } }
+      { $set: { visibility, updatedAt: new Date() } }
     );
 
     // Return the latest version
@@ -386,7 +386,7 @@ export class TimelineService {
     const pipeline = [
       {
         $match: {
-          isPublic: true
+          visibility: { $in: ['public', 'premium'] }
         }
       },
       {
@@ -479,7 +479,7 @@ export class TimelineService {
       createdAt: doc.createdAt instanceof Date ? doc.createdAt : new Date(doc.createdAt),
       updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt : new Date(doc.updatedAt),
       userId: doc.userId || null,
-      isPublic: doc.isPublic || false,
+      visibility: doc.visibility || 'private',
       viewCount: doc.viewCount || 0,
       version: doc.version || 1,
     };

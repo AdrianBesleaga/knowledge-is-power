@@ -28,7 +28,7 @@ export class PredictionService {
    * Gets value label, past data, current data, and predictions all at once
    * Uses internet access to get past data and current day data
    */
-  async generateTimelineAnalysis(topic: string): Promise<Omit<TimelineAnalysis, 'id' | 'slug' | 'createdAt' | 'updatedAt' | 'userId' | 'isPublic' | 'viewCount'>> {
+  async generateTimelineAnalysis(topic: string): Promise<Omit<TimelineAnalysis, 'id' | 'slug' | 'createdAt' | 'updatedAt' | 'userId' | 'visibility' | 'viewCount'>> {
     console.log(`[Timeline Generation] Starting complete timeline analysis for topic: "${topic}" (using OpenAI Agents SDK)`);
 
     const currentDate = new Date();

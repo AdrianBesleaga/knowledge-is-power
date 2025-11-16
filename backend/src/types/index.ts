@@ -14,6 +14,8 @@ export interface GraphEdge {
   strength: number; // 0 to 1
 }
 
+export type GraphVisibility = 'private' | 'public' | 'premium';
+
 export interface KnowledgeGraph {
   id: string;
   slug: string;
@@ -24,7 +26,7 @@ export interface KnowledgeGraph {
   edges: GraphEdge[];
   createdAt: Date;
   userId: string | null;
-  isPublic: boolean;
+  visibility: GraphVisibility;
   viewCount: number;
 }
 
@@ -37,7 +39,7 @@ export interface SaveGraphRequest {
   summary?: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
-  isPublic: boolean;
+  visibility: GraphVisibility;
 }
 
 export interface AIFactorAnalysis {
@@ -91,7 +93,7 @@ export interface TimelineAnalysis {
   createdAt: Date;
   updatedAt: Date;
   userId: string | null;
-  isPublic: boolean;
+  visibility: GraphVisibility;
   viewCount: number;
   version?: number; // Version number (defaults to 1)
 }
@@ -106,6 +108,6 @@ export interface SaveTimelineRequest {
   pastEntries: TimelineEntry[];
   presentEntry: TimelineEntry;
   predictions: Prediction[];
-  isPublic?: boolean;
+  visibility?: GraphVisibility;
 }
 

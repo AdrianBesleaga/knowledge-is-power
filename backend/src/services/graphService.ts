@@ -1,6 +1,6 @@
 import neo4j from 'neo4j-driver';
 import { getNeo4jDriver } from '../config/neo4j';
-import { KnowledgeGraph, GraphNode, GraphEdge } from '../types';
+import { KnowledgeGraph, GraphNode, GraphEdge, GraphVisibility } from '../types';
 import { generateSlug } from '../utils/slugify';
 
 export class GraphService {
@@ -12,7 +12,7 @@ export class GraphService {
     nodes: GraphNode[],
     edges: GraphEdge[],
     userId: string | null,
-    isPublic: boolean = false,
+    visibility: GraphVisibility = 'private',
     summary: string = ''
   ): Promise<KnowledgeGraph> {
     const driver = getNeo4jDriver();
@@ -34,7 +34,7 @@ export class GraphService {
           label: $label,
           summary: $summary,
           userId: $userId,
-          isPublic: $isPublic,
+          visibility: $visibility,
           viewCount: 0,
           createdAt: $createdAt
         })
@@ -47,7 +47,7 @@ export class GraphService {
           label: graphId,
           summary: summary || '',
           userId,
-          isPublic,
+          visibility,
           viewCount: neo4j.int(0),
           createdAt: createdAt.toISOString(),
         }
@@ -114,7 +114,7 @@ export class GraphService {
         edges,
         createdAt,
         userId,
-        isPublic,
+        visibility,
         viewCount: 0,
       };
     } finally {
@@ -237,7 +237,7 @@ export class GraphService {
         edges,
         createdAt,
         userId: graphProps.userId,
-        isPublic: graphProps.isPublic,
+        visibility: graphProps.visibility,
         viewCount: viewCount + 1, // Include the increment we just did
       };
     } catch (error) {
@@ -302,7 +302,7 @@ export class GraphService {
           edges: [], // Empty for list view
           createdAt,
           userId: graphProps.userId,
-          isPublic: graphProps.isPublic,
+          visibility: graphProps.visibility,
           viewCount,
         });
       }
@@ -495,7 +495,7 @@ export class GraphService {
           edges: [], // Empty for search results
           createdAt,
           userId: graphProps.userId,
-          isPublic: graphProps.isPublic,
+          visibility: graphProps.visibility,
           viewCount,
         });
       }
@@ -637,7 +637,7 @@ export class GraphService {
 
       for (const record of result.records) {
         const graphProps = record.get('related').properties;
-        
+
         let viewCount: number;
         if (graphProps.viewCount === undefined || graphProps.viewCount === null) {
           viewCount = 0;
@@ -646,7 +646,7 @@ export class GraphService {
         } else {
           viewCount = Number(graphProps.viewCount);
         }
-        
+
         let createdAt: Date;
         if (typeof graphProps.createdAt === 'string') {
           createdAt = new Date(graphProps.createdAt);
@@ -655,7 +655,7 @@ export class GraphService {
         } else {
           createdAt = new Date();
         }
-        
+
         graphs.push({
           id: graphProps.id,
           slug: graphProps.slug,
@@ -666,7 +666,7 @@ export class GraphService {
           edges: [],
           createdAt,
           userId: graphProps.userId,
-          isPublic: graphProps.isPublic,
+          visibility: graphProps.visibility,
           viewCount,
         });
       }
@@ -703,10 +703,10 @@ export class GraphService {
         RETURN count(DISTINCT g) as total
       `;
 
-      const result = await session.run(query, { 
-        category, 
-        limit: neo4j.int(Math.floor(limit)), 
-        offset: neo4j.int(Math.floor(offset)) 
+      const result = await session.run(query, {
+        category,
+        limit: neo4j.int(Math.floor(limit)),
+        offset: neo4j.int(Math.floor(offset))
       });
       const countResult = await session.run(countQuery, { category });
       const total = countResult.records[0]?.get('total').toNumber() || 0;
@@ -715,7 +715,7 @@ export class GraphService {
 
       for (const record of result.records) {
         const graphProps = record.get('g').properties;
-        
+
         let viewCount: number;
         if (graphProps.viewCount === undefined || graphProps.viewCount === null) {
           viewCount = 0;
@@ -724,7 +724,7 @@ export class GraphService {
         } else {
           viewCount = Number(graphProps.viewCount);
         }
-        
+
         let createdAt: Date;
         if (typeof graphProps.createdAt === 'string') {
           createdAt = new Date(graphProps.createdAt);
@@ -733,7 +733,7 @@ export class GraphService {
         } else {
           createdAt = new Date();
         }
-        
+
         graphs.push({
           id: graphProps.id,
           slug: graphProps.slug,
@@ -744,7 +744,7 @@ export class GraphService {
           edges: [],
           createdAt,
           userId: graphProps.userId,
-          isPublic: graphProps.isPublic,
+          visibility: graphProps.visibility,
           viewCount,
         });
       }
@@ -771,7 +771,7 @@ export class GraphService {
 
       const query = `
         MATCH (g:Graph)
-        WHERE g.isPublic = true 
+        WHERE g.visibility IN ['public', 'premium']
           AND datetime(g.createdAt) >= datetime($cutoffDate)
         RETURN g
         ORDER BY g.viewCount DESC, g.createdAt DESC
@@ -816,7 +816,7 @@ export class GraphService {
           edges: [],
           createdAt,
           userId: graphProps.userId,
-          isPublic: graphProps.isPublic,
+          visibility: graphProps.visibility,
           viewCount,
         });
       }
@@ -833,7 +833,7 @@ export class GraphService {
   async updateGraphVisibility(
     slug: string,
     userId: string,
-    isPublic: boolean
+    visibility: GraphVisibility
   ): Promise<KnowledgeGraph | null> {
     const driver = getNeo4jDriver();
     const session = driver.session();
@@ -857,10 +857,10 @@ export class GraphService {
       await session.run(
         `
         MATCH (g:Graph {slug: $slug, userId: $userId})
-        SET g.isPublic = $isPublic
+        SET g.visibility = $visibility
         RETURN g
         `,
-        { slug, userId, isPublic }
+        { slug, userId, visibility }
       );
 
       // Return the updated graph

@@ -179,12 +179,6 @@
   color: #ffffff;
 }
 
-.bonus-amount {
-  color: #10b981;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
 .package-icon {
   font-size: 2.5rem;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));

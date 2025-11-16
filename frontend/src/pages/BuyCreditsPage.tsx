@@ -14,28 +14,20 @@ interface CreditPackage {
 
 const CREDIT_PACKAGES: CreditPackage[] = [
   {
-    id: 'starter',
-    credits: 10,
-    price: 4.99,
-  },
-  {
     id: 'basic',
     credits: 25,
-    price: 9.99,
-    bonus: 5,
+    price: 7.99,
   },
   {
     id: 'pro',
     credits: 50,
-    price: 19.99,
+    price: 14.99,
     popular: true,
-    bonus: 15,
   },
   {
     id: 'premium',
     credits: 100,
-    price: 34.99,
-    bonus: 35,
+    price: 24.99,
   },
 ];
 
@@ -76,7 +68,7 @@ export const BuyCreditsPage = () => {
     // This is a placeholder for actual payment integration
     alert(
       `Payment integration coming soon!\n\n` +
-      `You selected: ${pkg.credits}${pkg.bonus ? ` + ${pkg.bonus} bonus` : ''} credits for $${pkg.price}\n\n` +
+      `You selected: ${pkg.credits} credits for $${pkg.price}\n\n` +
       `In production, this would integrate with:\n` +
       `• Stripe\n` +
       `• PayPal\n` +
@@ -125,8 +117,7 @@ export const BuyCreditsPage = () => {
 
         <div className="packages-grid">
           {CREDIT_PACKAGES.map((pkg) => {
-            const totalCredits = pkg.credits + (pkg.bonus || 0);
-            const pricePerCredit = (pkg.price / totalCredits).toFixed(2);
+            const pricePerCredit = (pkg.price / pkg.credits).toFixed(2);
 
             return (
               <div
@@ -140,9 +131,6 @@ export const BuyCreditsPage = () => {
                 <div className="package-header">
                   <div className="package-credits">
                     <span className="credit-amount">{pkg.credits}</span>
-                    {pkg.bonus && (
-                      <span className="bonus-amount">+{pkg.bonus} bonus</span>
-                    )}
                   </div>
                   <div className="package-icon">💎</div>
                 </div>
@@ -155,8 +143,8 @@ export const BuyCreditsPage = () => {
 
                   <div className="package-info">
                     <div className="info-item">
-                      <span className="info-label">Total Credits:</span>
-                      <span className="info-value">{totalCredits}</span>
+                      <span className="info-label">Credits:</span>
+                      <span className="info-value">{pkg.credits}</span>
                     </div>
                     <div className="info-item">
                       <span className="info-label">Price per Credit:</span>
@@ -164,15 +152,9 @@ export const BuyCreditsPage = () => {
                     </div>
                     <div className="info-item">
                       <span className="info-label">Graphs/Predictions:</span>
-                      <span className="info-value">{totalCredits}</span>
+                      <span className="info-value">{pkg.credits}</span>
                     </div>
                   </div>
-
-                  {pkg.bonus && (
-                    <div className="savings-badge">
-                      Save {Math.round((pkg.bonus / totalCredits) * 100)}%
-                    </div>
-                  )}
                 </div>
 
                 <button
@@ -232,3 +214,4 @@ export const BuyCreditsPage = () => {
     </div>
   );
 };
+

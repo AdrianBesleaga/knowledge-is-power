@@ -1,15 +1,42 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { getUserCredits, setAuthToken } from '../services/api';
 import { AuthModal } from './AuthModal';
 import './UserProfile.css';
 
 export const UserProfile = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, getIdToken } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [credits, setCredits] = useState<number>(0);
+  const [creditsLoading, setCreditsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Load credits when dropdown opens
+  useEffect(() => {
+    const loadCredits = async () => {
+      if (!user || !isOpen) return;
+
+      try {
+        setCreditsLoading(true);
+        const token = await getIdToken();
+        if (token) {
+          setAuthToken(token);
+        }
+        const userCredits = await getUserCredits();
+        setCredits(userCredits);
+      } catch (error) {
+        console.error('Error loading credits:', error);
+        setCredits(0);
+      } finally {
+        setCreditsLoading(false);
+      }
+    };
+
+    loadCredits();
+  }, [user, isOpen, getIdToken]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -130,14 +157,25 @@ export const UserProfile = () => {
               <div className="dropdown-avatar">
                 {getInitials(user.displayName, user.email)}
               </div>
-              <div className="dropdown-user-info">
-                <div className="dropdown-name">{getDisplayName()}</div>
-                {user.email && (
-                  <div className="dropdown-email">{user.email}</div>
-                )}
+            <div className="dropdown-user-info">
+              <div className="dropdown-name">{getDisplayName()}</div>
+              {user.email && (
+                <div className="dropdown-email">{user.email}</div>
+              )}
+            </div>
+          </div>
+          <div className="dropdown-credits">
+            <div className="credit-display-compact">
+              <span className="credit-icon-compact">💎</span>
+              <div className="credit-info-compact">
+                <span className="credit-label-compact">Credits</span>
+                <span className="credit-amount-compact">
+                  {creditsLoading ? '...' : credits}
+                </span>
               </div>
             </div>
-            <div className="dropdown-divider"></div>
+          </div>
+          <div className="dropdown-divider"></div>
             <button
               className="dropdown-item"
               onClick={handleProfileClick}
@@ -167,6 +205,20 @@ export const UserProfile = () => {
                 <polyline points="21,3 12,12 21,21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               My AI Predictions
+            </button>
+            <button
+              className="dropdown-item"
+              onClick={() => {
+                navigate('/buy-credits');
+                setIsOpen(false);
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="9" cy="21" r="1" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="20" cy="21" r="1" stroke="currentColor" strokeWidth="2"/>
+                <path d="m1 1 4 4h15l-1 9H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Buy Credits
             </button>
             <button
               className="dropdown-item"

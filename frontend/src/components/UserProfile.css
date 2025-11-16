@@ -157,6 +157,40 @@
   white-space: nowrap;
 }
 
+.dropdown-credits {
+  padding: 0.75rem 1rem;
+  background: rgb(31, 41, 55);
+  border-bottom: 1px solid rgb(55, 65, 81);
+}
+
+.credit-display-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.credit-icon-compact {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.credit-info-compact {
+  flex: 1;
+  min-width: 0;
+}
+
+.credit-label-compact {
+  font-size: 0.75rem;
+  color: rgb(209, 213, 219);
+  display: block;
+  margin-bottom: 0.125rem;
+}
+
+.credit-amount-compact {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgb(229, 231, 235);
+}
 
 .dropdown-divider {
   height: 1px;

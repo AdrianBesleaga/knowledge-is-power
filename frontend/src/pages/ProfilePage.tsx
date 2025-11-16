@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUserGraphs, setAuthToken } from '../services/api';
+import { getUserGraphs, getUserProfile, setAuthToken } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { KnowledgeGraph } from '../types/graph';
 import './ProfilePage.css';
@@ -9,6 +9,7 @@ export const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, getIdToken } = useAuth();
   const [graphs, setGraphs] = useState<KnowledgeGraph[]>([]);
+  const [credits, setCredits] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,11 +26,15 @@ export const ProfilePage = () => {
           setAuthToken(token);
         }
 
-        const userGraphs = await getUserGraphs();
+        const [userGraphs, profile] = await Promise.all([
+          getUserGraphs(),
+          getUserProfile()
+        ]);
         setGraphs(userGraphs);
+        setCredits(profile.credits);
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to load graphs');
-        console.error('Error loading graphs:', err);
+        setError(err.response?.data?.error || 'Failed to load profile');
+        console.error('Error loading profile:', err);
       } finally {
         setLoading(false);
       }
@@ -54,8 +59,27 @@ export const ProfilePage = () => {
     <div className="profile-page">
       <main className="profile-main">
         <div className="profile-info">
-          <h2>My Knowledge Graphs</h2>
-          <p className="user-email">{user?.email}</p>
+          <div className="profile-header">
+            <div>
+              <h2>My Profile</h2>
+              <p className="user-email">{user?.email}</p>
+            </div>
+            <div className="credit-display">
+              <div className="credit-badge">
+                <span className="credit-icon">💎</span>
+                <div className="credit-info">
+                  <span className="credit-label">Credits</span>
+                  <span className="credit-amount">{credits}</span>
+                </div>
+              </div>
+              <button
+                className="btn-buy-credits"
+                onClick={() => navigate('/buy-credits')}
+              >
+                Buy Credits
+              </button>
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -63,6 +87,10 @@ export const ProfilePage = () => {
             {error}
           </div>
         )}
+
+        <div className="profile-section">
+          <h3>My Knowledge Graphs</h3>
+        </div>
 
         {graphs.length === 0 ? (
           <div className="empty-state">

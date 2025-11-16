@@ -4,12 +4,14 @@ import { graphService } from '../services/graphService';
 import { authenticateToken, optionalAuth, AuthRequest } from '../middleware/auth';
 import { GenerateGraphRequest, SaveGraphRequest } from '../types';
 import { getNeo4jDriver } from '../config/neo4j';
+import { creditService, InsufficientCreditsError } from '../services/creditService';
 
 const router = Router();
 
 /**
  * POST /api/graph/generate
  * Generate a knowledge graph from a topic (requires authentication)
+ * Costs 1 credit per generation
  */
 router.post('/generate', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
@@ -30,8 +32,31 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
       return;
     }
 
+    // Ensure user exists in database
+    await creditService.getOrCreateUser(req.user.uid, req.user.email || '');
+
+    // Check and deduct credits (1 credit per graph generation)
+    try {
+      const remainingCredits = await creditService.deductCredits(
+        req.user.uid,
+        1,
+        `Generated graph: "${topic.trim()}"`
+      );
+      console.log(`[API] Credit deducted for user ${req.user.uid}. Remaining: ${remainingCredits}`);
+    } catch (error) {
+      if (error instanceof InsufficientCreditsError) {
+        res.status(402).json({
+          error: 'Insufficient credits',
+          message: error.message,
+          code: 'INSUFFICIENT_CREDITS'
+        });
+        return;
+      }
+      throw error;
+    }
+
     console.log(`[API] Graph generation request received for topic: "${topic.trim()}" by user: ${req.user.uid}`);
-    
+
     // Generate knowledge graph using AI (fixed to 3 levels)
     const result = await aiService.generateKnowledgeGraph(topic.trim());
 
@@ -46,7 +71,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
     });
   } catch (error) {
     console.error('[API] Error generating graph:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to generate knowledge graph',
       details: error instanceof Error ? error.message : 'Unknown error'
     });

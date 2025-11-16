@@ -68,9 +68,28 @@ export const getUserTimelines = async (): Promise<TimelineAnalysis[]> => {
 export const getUserProfile = async (): Promise<{
   uid: string;
   email: string;
+  credits: number;
 }> => {
   const response = await api.get('/api/user/profile');
   return response.data.user;
+};
+
+export const getUserCredits = async (): Promise<number> => {
+  const response = await api.get('/api/user/credits');
+  return response.data.credits;
+};
+
+export interface CreditTransaction {
+  timestamp: string;
+  action: 'deduct' | 'add' | 'initial';
+  amount: number;
+  description: string;
+  remainingCredits: number;
+}
+
+export const getCreditHistory = async (limit: number = 50): Promise<CreditTransaction[]> => {
+  const response = await api.get('/api/user/credits/history', { params: { limit } });
+  return response.data.history;
 };
 
 export interface SearchGraphsResponse {

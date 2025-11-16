@@ -3,12 +3,14 @@ import { predictionService } from '../services/predictionService';
 import { timelineService } from '../services/timelineService';
 import { authenticateToken, optionalAuth, AuthRequest } from '../middleware/auth';
 import { GenerateTimelineRequest } from '../types';
+import { creditService, InsufficientCreditsError } from '../services/creditService';
 
 const router = Router();
 
 /**
  * POST /api/timeline/generate
  * Generate a timeline analysis for a topic and automatically save it (requires authentication)
+ * Costs 1 credit per generation
  */
 router.post('/generate', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
@@ -27,6 +29,29 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
     if (!req.user) {
       res.status(401).json({ error: 'Authentication required' });
       return;
+    }
+
+    // Ensure user exists in database
+    await creditService.getOrCreateUser(req.user.uid, req.user.email || '');
+
+    // Check and deduct credits (1 credit per timeline/prediction generation)
+    try {
+      const remainingCredits = await creditService.deductCredits(
+        req.user.uid,
+        1,
+        `Generated timeline: "${topic.trim()}"`
+      );
+      console.log(`[API] Credit deducted for user ${req.user.uid}. Remaining: ${remainingCredits}`);
+    } catch (error) {
+      if (error instanceof InsufficientCreditsError) {
+        res.status(402).json({
+          error: 'Insufficient credits',
+          message: error.message,
+          code: 'INSUFFICIENT_CREDITS'
+        });
+        return;
+      }
+      throw error;
     }
 
     console.log(`[API] Timeline generation request received for topic: "${topic.trim()}" by user: ${req.user.uid}`);

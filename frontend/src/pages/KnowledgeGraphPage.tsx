@@ -94,6 +94,14 @@ export const KnowledgeGraphPage = () => {
           if (err.response?.status === 401) {
             setError('Please sign in to generate graphs');
             setShowAuthModal(true);
+          } else if (err.response?.status === 402) {
+            setError(err.response?.data?.message || 'Insufficient credits. Please buy more credits to continue.');
+            // Show error with link to buy credits
+            setTimeout(() => {
+              if (window.confirm('You have run out of credits. Would you like to buy more credits?')) {
+                navigate('/buy-credits');
+              }
+            }, 500);
           } else {
             setError(err.response?.data?.error || 'Failed to generate knowledge graph');
           }
@@ -160,6 +168,14 @@ export const KnowledgeGraphPage = () => {
       if (err.response?.status === 401) {
         setError('Please sign in to generate graphs');
         setShowAuthModal(true);
+      } else if (err.response?.status === 402) {
+        setError(err.response?.data?.message || 'Insufficient credits. Please buy more credits to continue.');
+        // Show error with link to buy credits
+        setTimeout(() => {
+          if (window.confirm('You have run out of credits. Would you like to buy more credits?')) {
+            navigate('/buy-credits');
+          }
+        }, 500);
       } else {
         setError(err.response?.data?.error || 'Failed to generate knowledge graph');
       }

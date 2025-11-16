@@ -209,14 +209,6 @@ const PredictionInlineDisplay = ({ prediction, onPredictionClick }: PredictionIn
     <div className="prediction-inline-display">
       <div className="prediction-inline-header">
         <span className="prediction-inline-label">{prediction.timeline}</span>
-        {onPredictionClick && (
-          <button 
-            className="prediction-inline-view-details"
-            onClick={() => onPredictionClick(prediction)}
-          >
-            View Details
-          </button>
-        )}
       </div>
       <div className="prediction-inline-scenarios">
         {sortedScenarios.map((scenario) => (
@@ -226,7 +218,6 @@ const PredictionInlineDisplay = ({ prediction, onPredictionClick }: PredictionIn
             style={{
               borderColor: getScenarioBorderColor(scenario, prediction.scenarios),
             }}
-            onClick={() => onPredictionClick?.(prediction)}
           >
             <div className="scenario-inline-title">{scenario.title}</div>
             {scenario.predictedValue !== undefined && (
@@ -265,7 +256,7 @@ const PredictionInlineDisplay = ({ prediction, onPredictionClick }: PredictionIn
             <div className="scenario-inline-confidence">
               <span 
                 className="scenario-inline-confidence-value"
-                style={{ color: getConfidenceColor(scenario.confidenceScore) }}
+                style={{ color: getConfidenceColor(scenario.confidenceScore ?? 0) }}
               >
                 Confidence: {scenario.confidenceScore}%
               </span>
@@ -286,10 +277,20 @@ export const TimelineChart = ({
 }: TimelineChartProps) => {
   const [hoveredPrediction, setHoveredPrediction] = useState<Prediction | null>(null);
   const [hoveredDateLabel, setHoveredDateLabel] = useState<string | null>(null);
-  const [hoveredPosition, setHoveredPosition] = useState<{ x: number; y: number } | null>(null);
-  const [tooltipStyle, setTooltipStyle] = useState<{ left: string; top: string; transform: string } | null>(null);
+  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Track window size for responsive behavior
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Helper function to categorize scenarios into Optimistic, Neutral, Pessimistic
   const categorizeScenarios = (scenarios: Array<{ title: string; predictedValue?: number }>) => {
@@ -421,7 +422,6 @@ export const TimelineChart = ({
     hideTimeoutRef.current = setTimeout(() => {
       setHoveredPrediction(null);
       setHoveredDateLabel(null);
-      setHoveredPosition(null);
       setTooltipStyle(null);
     }, 200);
   };
@@ -438,7 +438,6 @@ export const TimelineChart = ({
     // Hide inline display when leaving area
     setHoveredPrediction(null);
     setHoveredDateLabel(null);
-    setHoveredPosition(null);
     setTooltipStyle(null);
   };
 
@@ -451,6 +450,29 @@ export const TimelineChart = ({
     };
   }, []);
 
+  // Handle clicking outside tooltip on mobile to close it
+  useEffect(() => {
+    if (!isMobile || !hoveredPrediction) return;
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.prediction-inline-display-wrapper') && 
+          !target.closest('circle[fill="#10b981"], circle[fill="#f59e0b"], circle[fill="#ef4444"]')) {
+        setHoveredPrediction(null);
+        setHoveredDateLabel(null);
+        setTooltipStyle(null);
+      }
+    };
+
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [isMobile, hoveredPrediction]);
+
   // Helper function to create a dot component that shows as hovered when any dot at the same date is hovered
   const createPredictionDot = (color: string) => {
     return (props: any) => {
@@ -458,64 +480,102 @@ export const TimelineChart = ({
       // Only render for prediction points that have a prediction object
       if (payload?.type === 'prediction' && payload.prediction && payload.prediction.scenarios) {
         const isHovered = hoveredDateLabel === payload.dateLabel;
-        const handleMouseEnter = (e: React.MouseEvent<SVGCircleElement>) => {
+        const handleInteraction = (e: React.MouseEvent<SVGCircleElement> | React.TouchEvent<SVGCircleElement>) => {
           // Cancel any pending hide timeout
           if (hideTimeoutRef.current) {
             clearTimeout(hideTimeoutRef.current);
             hideTimeoutRef.current = null;
           }
-          const chartWrapper = document.querySelector('.chart-container-wrapper');
+          const chartWrapper = chartContainerRef.current;
           if (chartWrapper) {
             const wrapperRect = chartWrapper.getBoundingClientRect();
             const svgElement = e.currentTarget.closest('svg');
             if (svgElement) {
               const svgRect = svgElement.getBoundingClientRect();
-              // Calculate position relative to chart container
-              const x = cx + (svgRect.left - wrapperRect.left);
-              const y = cy + (svgRect.top - wrapperRect.top);
+              // Calculate position relative to viewport for tooltip positioning
+              const x = cx + svgRect.left;
+              const y = cy + svgRect.top;
               
-              // Calculate tooltip position to keep it within chart bounds
-              const tooltipWidth = 600; // Fixed width
-              const tooltipHeight = 200; // Estimated height
+              // Calculate tooltip position to keep it within viewport bounds
+              const tooltipWidth = isMobile ? Math.min(window.innerWidth - 40, 320) : 600; // Responsive width - smaller on mobile
+              const tooltipHeight = isMobile ? 250 : 200; // Estimated height - account for scrollable content
               const padding = 10;
               
-              // Calculate left position - center on dot, but adjust if it would go outside
+              // Calculate left position - center on dot, but adjust if it would go outside viewport
               let left = x;
-              const minLeft = tooltipWidth / 2 + padding; // Minimum left to keep tooltip fully visible
-              const maxLeft = wrapperRect.width - tooltipWidth / 2 - padding; // Maximum left to keep tooltip fully visible
+              const viewportWidth = window.innerWidth;
+              const viewportHeight = window.innerHeight;
               
-              // Adjust if tooltip would go outside left edge
-              if (left < minLeft) {
-                left = minLeft;
-              }
-              // Adjust if tooltip would go outside right edge
-              else if (left > maxLeft) {
-                left = maxLeft;
-              }
-              
-              // Calculate top position - above the dot, but adjust if it would go outside top
-              let top = y;
-              const minTop = padding;
-              
-              // If tooltip would go above chart, show it below the dot instead
-              if (top - tooltipHeight - 10 < minTop) {
-                top = y + 20; // Show below dot
+              if (isMobile) {
+                // On mobile, ensure tooltip stays fully within viewport
+                // Calculate horizontal position
+                const minLeft = tooltipWidth / 2 + padding;
+                const maxLeft = viewportWidth - tooltipWidth / 2 - padding;
+                left = Math.min(Math.max(minLeft, x), maxLeft);
+                
+                // Calculate vertical position - try above first, then below if needed
+                let top = y - tooltipHeight - 10;
+                let transform = 'translate(-50%, 0)';
+                
+                // If tooltip would go above viewport, show it below the dot
+                if (top < padding) {
+                  top = y + 20; // Show below dot
+                  transform = 'translate(-50%, 0)';
+                }
+                
+                // If tooltip would go below viewport, adjust to fit
+                if (top + tooltipHeight > viewportHeight - padding) {
+                  top = Math.max(padding, viewportHeight - tooltipHeight - padding);
+                }
+                
                 setTooltipStyle({
                   left: `${left}px`,
                   top: `${top}px`,
-                  transform: 'translate(-50%, 0)',
+                  transform: transform,
+                  position: 'fixed',
+                  maxHeight: `${viewportHeight - top - padding}px`,
+                  overflowY: 'auto',
                 });
               } else {
-                setTooltipStyle({
-                  left: `${left}px`,
-                  top: `${top}px`,
-                  transform: 'translate(-50%, calc(-100% - 10px))',
-                });
+                // Calculate relative to wrapper for desktop
+                const relativeX = cx + (svgRect.left - wrapperRect.left);
+                const minLeft = tooltipWidth / 2 + padding;
+                const maxLeft = wrapperRect.width - tooltipWidth / 2 - padding;
+                
+                // Adjust if tooltip would go outside left edge
+                if (relativeX < minLeft) {
+                  left = wrapperRect.left + minLeft;
+                }
+                // Adjust if tooltip would go outside right edge
+                else if (relativeX > maxLeft) {
+                  left = wrapperRect.left + maxLeft;
+                }
+                
+                // Calculate top position - above the dot, but adjust if it would go outside top
+                let top = y;
+                const minTop = wrapperRect.top + padding;
+                
+                // If tooltip would go above chart, show it below the dot instead
+                if (top - tooltipHeight - 10 < minTop) {
+                  top = y + 20; // Show below dot
+                  setTooltipStyle({
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    transform: 'translate(-50%, 0)',
+                    position: 'fixed',
+                  });
+                } else {
+                  setTooltipStyle({
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    transform: 'translate(-50%, calc(-100% - 10px))',
+                    position: 'fixed',
+                  });
+                }
               }
               
               setHoveredPrediction(payload.prediction);
               setHoveredDateLabel(payload.dateLabel);
-              setHoveredPosition({ x, y });
             }
           }
         };
@@ -529,9 +589,10 @@ export const TimelineChart = ({
               fill={color}
               stroke="white"
               strokeWidth={isHovered ? 3 : 2}
-              onMouseEnter={handleMouseEnter}
+              onMouseEnter={handleInteraction}
               onMouseLeave={handlePredictionMouseLeave}
-              style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+              onTouchStart={handleInteraction}
+              style={{ cursor: 'pointer', transition: 'all 0.2s', touchAction: 'manipulation' }}
             />
           </g>
         );
@@ -552,64 +613,102 @@ export const TimelineChart = ({
       // Only render for prediction points that have a prediction object
       if (payload?.type === 'prediction' && payload.prediction && payload.prediction.scenarios) {
         const isHovered = hoveredDateLabel === payload.dateLabel;
-        const handleMouseEnter = (e: React.MouseEvent<SVGCircleElement>) => {
+        const handleInteraction = (e: React.MouseEvent<SVGCircleElement> | React.TouchEvent<SVGCircleElement>) => {
           // Cancel any pending hide timeout
           if (hideTimeoutRef.current) {
             clearTimeout(hideTimeoutRef.current);
             hideTimeoutRef.current = null;
           }
-          const chartWrapper = document.querySelector('.chart-container-wrapper');
+          const chartWrapper = chartContainerRef.current;
           if (chartWrapper) {
             const wrapperRect = chartWrapper.getBoundingClientRect();
             const svgElement = e.currentTarget.closest('svg');
             if (svgElement) {
               const svgRect = svgElement.getBoundingClientRect();
-              // Calculate position relative to chart container
-              const x = cx + (svgRect.left - wrapperRect.left);
-              const y = cy + (svgRect.top - wrapperRect.top);
+              // Calculate position relative to viewport for tooltip positioning
+              const x = cx + svgRect.left;
+              const y = cy + svgRect.top;
               
-              // Calculate tooltip position to keep it within chart bounds
-              const tooltipWidth = 600; // Fixed width
-              const tooltipHeight = 200; // Estimated height
+              // Calculate tooltip position to keep it within viewport bounds
+              const tooltipWidth = isMobile ? Math.min(window.innerWidth - 40, 320) : 600; // Responsive width - smaller on mobile
+              const tooltipHeight = isMobile ? 250 : 200; // Estimated height - account for scrollable content
               const padding = 10;
               
-              // Calculate left position - center on dot, but adjust if it would go outside
+              // Calculate left position - center on dot, but adjust if it would go outside viewport
               let left = x;
-              const minLeft = tooltipWidth / 2 + padding; // Minimum left to keep tooltip fully visible
-              const maxLeft = wrapperRect.width - tooltipWidth / 2 - padding; // Maximum left to keep tooltip fully visible
+              const viewportWidth = window.innerWidth;
+              const viewportHeight = window.innerHeight;
               
-              // Adjust if tooltip would go outside left edge
-              if (left < minLeft) {
-                left = minLeft;
-              }
-              // Adjust if tooltip would go outside right edge
-              else if (left > maxLeft) {
-                left = maxLeft;
-              }
-              
-              // Calculate top position - above the dot, but adjust if it would go outside top
-              let top = y;
-              const minTop = padding;
-              
-              // If tooltip would go above chart, show it below the dot instead
-              if (top - tooltipHeight - 10 < minTop) {
-                top = y + 20; // Show below dot
+              if (isMobile) {
+                // On mobile, ensure tooltip stays fully within viewport
+                // Calculate horizontal position
+                const minLeft = tooltipWidth / 2 + padding;
+                const maxLeft = viewportWidth - tooltipWidth / 2 - padding;
+                left = Math.min(Math.max(minLeft, x), maxLeft);
+                
+                // Calculate vertical position - try above first, then below if needed
+                let top = y - tooltipHeight - 10;
+                let transform = 'translate(-50%, 0)';
+                
+                // If tooltip would go above viewport, show it below the dot
+                if (top < padding) {
+                  top = y + 20; // Show below dot
+                  transform = 'translate(-50%, 0)';
+                }
+                
+                // If tooltip would go below viewport, adjust to fit
+                if (top + tooltipHeight > viewportHeight - padding) {
+                  top = Math.max(padding, viewportHeight - tooltipHeight - padding);
+                }
+                
                 setTooltipStyle({
                   left: `${left}px`,
                   top: `${top}px`,
-                  transform: 'translate(-50%, 0)',
+                  transform: transform,
+                  position: 'fixed',
+                  maxHeight: `${viewportHeight - top - padding}px`,
+                  overflowY: 'auto',
                 });
               } else {
-                setTooltipStyle({
-                  left: `${left}px`,
-                  top: `${top}px`,
-                  transform: 'translate(-50%, calc(-100% - 10px))',
-                });
+                // Calculate relative to wrapper for desktop
+                const relativeX = cx + (svgRect.left - wrapperRect.left);
+                const minLeft = tooltipWidth / 2 + padding;
+                const maxLeft = wrapperRect.width - tooltipWidth / 2 - padding;
+                
+                // Adjust if tooltip would go outside left edge
+                if (relativeX < minLeft) {
+                  left = wrapperRect.left + minLeft;
+                }
+                // Adjust if tooltip would go outside right edge
+                else if (relativeX > maxLeft) {
+                  left = wrapperRect.left + maxLeft;
+                }
+                
+                // Calculate top position - above the dot, but adjust if it would go outside top
+                let top = y;
+                const minTop = wrapperRect.top + padding;
+                
+                // If tooltip would go above chart, show it below the dot instead
+                if (top - tooltipHeight - 10 < minTop) {
+                  top = y + 20; // Show below dot
+                  setTooltipStyle({
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    transform: 'translate(-50%, 0)',
+                    position: 'fixed',
+                  });
+                } else {
+                  setTooltipStyle({
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    transform: 'translate(-50%, calc(-100% - 10px))',
+                    position: 'fixed',
+                  });
+                }
               }
               
               setHoveredPrediction(payload.prediction);
               setHoveredDateLabel(payload.dateLabel);
-              setHoveredPosition({ x, y });
             }
           }
         };
@@ -623,9 +722,10 @@ export const TimelineChart = ({
               fill={color}
               stroke="white"
               strokeWidth={isHovered ? 3 : 2}
-              onMouseEnter={handleMouseEnter}
+              onMouseEnter={handleInteraction}
               onMouseLeave={handlePredictionMouseLeave}
-              style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+              onTouchStart={handleInteraction}
+              style={{ cursor: 'pointer', transition: 'all 0.2s', touchAction: 'manipulation' }}
             />
           </g>
         );
@@ -646,27 +746,28 @@ export const TimelineChart = ({
         <p className="chart-subtitle">{valueLabel}</p>
       </div>
       <div className="chart-container-wrapper" ref={chartContainerRef} style={{ position: 'relative' }}>
-        <ResponsiveContainer width="100%" height={450}>
+        <div className="chart-scrollable-content" style={{ minWidth: isMobile && chartData.length > 8 ? `${Math.max(600, chartData.length * 80)}px` : '100%' }}>
+          <ResponsiveContainer width="100%" height={isMobile ? 350 : 450}>
           <LineChart 
             data={chartData} 
-            margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+            margin={isMobile ? { top: 10, right: 10, left: 10, bottom: 60 } : { top: 20, right: 30, left: 20, bottom: 80 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis 
               dataKey="dateLabel" 
-              angle={-45} 
+              angle={isMobile ? -60 : -45} 
               textAnchor="end" 
-              height={80}
-              interval={0}
-              tick={{ fontSize: 12, fill: '#666' }}
-              tickMargin={10}
+              height={isMobile ? 60 : 80}
+              interval={isMobile ? 'preserveStartEnd' : 0}
+              tick={{ fontSize: isMobile ? 10 : 12, fill: '#666' }}
+              tickMargin={isMobile ? 5 : 10}
             />
             <YAxis 
-              label={{ value: valueLabel, angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+              label={isMobile ? undefined : { value: valueLabel, angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
               domain={yDomain}
               tickFormatter={formatYAxis}
-              tick={{ fontSize: 12, fill: '#666' }}
-              width={80}
+              tick={{ fontSize: isMobile ? 10 : 12, fill: '#666' }}
+              width={isMobile ? 50 : 80}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend 
@@ -729,6 +830,7 @@ export const TimelineChart = ({
             />
           </LineChart>
         </ResponsiveContainer>
+        </div>
         {hoveredPrediction && tooltipStyle && (
           <div
             className="prediction-inline-display-wrapper"

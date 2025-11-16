@@ -171,11 +171,46 @@
 
 .chart-container-wrapper {
   position: relative;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chart-container-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.chart-container-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.chart-container-wrapper::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.chart-container-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Chart scrollable content */
+.chart-scrollable-content {
+  min-width: 100%;
+  width: max-content;
+}
+
+@media (max-width: 768px) {
+  .chart-container-wrapper {
+    margin: 0 -1rem;
+    padding: 0 1rem;
+  }
 }
 
 /* Inline prediction display - horizontal layout, positioned in chart */
 .prediction-inline-display-wrapper {
-  position: absolute;
+  position: fixed;
   z-index: 1000;
   pointer-events: auto;
   animation: fadeIn 0.2s ease;
@@ -451,12 +486,60 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .chart-header {
+    margin-bottom: 1rem;
+  }
+
   .chart-header h4 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
   
   .chart-subtitle {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+  }
+
+  .recharts-cartesian-axis-tick-value {
+    font-size: 0.75rem;
+  }
+
+  .recharts-legend-wrapper {
+    padding-top: 0.5rem;
+  }
+
+  .recharts-legend-item-text {
+    font-size: 0.75rem;
+  }
+
+  .prediction-inline-display-wrapper {
+    width: calc(100vw - 40px) !important;
+    min-width: calc(100vw - 40px) !important;
+    max-width: calc(100vw - 40px) !important;
+    box-sizing: border-box;
+  }
+
+  .prediction-inline-display {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.5rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+
+  .prediction-inline-header {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.375rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .prediction-inline-label {
+    font-size: 0.7rem;
+  }
+
+  .prediction-inline-view-details {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
   }
 
   .prediction-inline-scenarios {
@@ -468,8 +551,46 @@
     padding: 0.5rem;
   }
 
+  .scenario-inline-title {
+    font-size: 0.75rem;
+    margin-bottom: 0.375rem;
+  }
+
+  .scenario-inline-value {
+    font-size: 0.85rem;
+    margin-bottom: 0.375rem;
+  }
+
   .scenario-inline-summary {
+    font-size: 0.65rem;
+    margin-bottom: 0.375rem;
     -webkit-line-clamp: 2;
+  }
+
+  .scenario-inline-sources {
+    margin-top: 0.375rem;
+    padding-top: 0.375rem;
+  }
+
+  .scenario-inline-sources-label {
+    font-size: 0.6rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .scenario-inline-source-link {
+    font-size: 0.6rem;
+  }
+
+  .scenario-inline-sources-more {
+    font-size: 0.6rem;
+  }
+
+  .scenario-inline-confidence {
+    padding-top: 0.375rem;
+  }
+
+  .scenario-inline-confidence-value {
+    font-size: 0.65rem;
   }
 }
 

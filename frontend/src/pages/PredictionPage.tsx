@@ -4,7 +4,6 @@ import { SearchBar } from '../components/SearchBar';
 import { generateTimeline, setAuthToken, getTimelineBySlug, reprocessTimeline, getUserTimelines, saveTimelineVersion, getTimelineVersions, deleteTimeline } from '../services/api';
 import { TimelineAnalysis, TimelineEntry, Prediction, TimelineVersion } from '../types/timeline';
 import { TimelineChart } from '../components/TimelineChart';
-import { PredictionModal } from '../components/PredictionModal';
 import { ShareButton } from '../components/ShareButton';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../hooks/useAuth';
@@ -27,8 +26,6 @@ export const PredictionPage = () => {
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [savingVersion, setSavingVersion] = useState(false);
-  const [showPredictionModal, setShowPredictionModal] = useState(false);
-  const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -294,11 +291,6 @@ export const PredictionPage = () => {
     }
   };
 
-  // Handle prediction click to show modal
-  const handlePredictionClick = (prediction: Prediction) => {
-    setSelectedPrediction(prediction);
-    setShowPredictionModal(true);
-  };
 
   // Handle timeline visibility change
   const handleTimelineVisibilityChange = (isPublic: boolean) => {
@@ -507,7 +499,6 @@ export const PredictionPage = () => {
                 presentEntry={reprocessedData?.presentEntry || timeline.presentEntry}
                 predictions={reprocessedData?.predictions || timeline.predictions}
                 valueLabel={timeline.valueLabel}
-                onPredictionClick={handlePredictionClick}
               />
             </div>
           </div>
@@ -525,17 +516,6 @@ export const PredictionPage = () => {
         }}
       />
 
-      {timeline && (
-        <PredictionModal
-          isOpen={showPredictionModal}
-          onClose={() => {
-            setShowPredictionModal(false);
-            setSelectedPrediction(null);
-          }}
-          prediction={selectedPrediction}
-          valueLabel={timeline.valueLabel}
-        />
-      )}
 
       {showDeleteConfirm && (
         <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>

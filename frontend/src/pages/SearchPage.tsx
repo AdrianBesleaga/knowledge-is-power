@@ -288,6 +288,11 @@ export const SearchPage = () => {
                   className="graph-card"
                   onClick={() => navigate(`/graph/${graph.slug}`)}
                 >
+                  <div className="visibility-badge-overlay">
+                    <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                      {graph.visibility === 'public' ? '🌐' : graph.visibility === 'premium' ? '💎' : '🔒'}
+                    </span>
+                  </div>
                   <h3>{graph.topic}</h3>
                   {graph.summary && (
                     <p className="graph-card-summary">{graph.summary}</p>
@@ -299,8 +304,8 @@ export const SearchPage = () => {
                     <span className="views">{graph.viewCount} views</span>
                   </div>
                   <div className="graph-card-footer">
-                    <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
-                      {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐 Public' : graph.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                     </span>
                   </div>
                 </div>
@@ -357,6 +362,11 @@ export const SearchPage = () => {
                   className="graph-card"
                   onClick={() => navigate(`/graph/${graph.slug}`)}
                 >
+                  <div className="visibility-badge-overlay">
+                    <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                      {graph.visibility === 'public' ? '🌐' : graph.visibility === 'premium' ? '💎' : '🔒'}
+                    </span>
+                  </div>
                   <h3>{graph.topic}</h3>
                   {graph.summary && (
                     <p className="graph-card-summary">{graph.summary}</p>
@@ -368,8 +378,8 @@ export const SearchPage = () => {
                     <span className="views">{graph.viewCount} views</span>
                   </div>
                   <div className="graph-card-footer">
-                    <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
-                      {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐 Public' : graph.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                     </span>
                   </div>
                 </div>
@@ -390,6 +400,11 @@ export const SearchPage = () => {
                   className="graph-card"
                   onClick={() => navigate(`/graph/${graph.slug}`)}
                 >
+                  <div className="visibility-badge-overlay">
+                    <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                      {graph.visibility === 'public' ? '🌐' : graph.visibility === 'premium' ? '💎' : '🔒'}
+                    </span>
+                  </div>
                   <h3>{graph.topic}</h3>
                   {graph.summary && (
                     <p className="graph-card-summary">{graph.summary}</p>
@@ -401,8 +416,8 @@ export const SearchPage = () => {
                     <span className="views">{graph.viewCount} views</span>
                   </div>
                   <div className="graph-card-footer">
-                    <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
-                      {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐 Public' : graph.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                     </span>
                   </div>
                 </div>

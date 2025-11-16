@@ -197,7 +197,7 @@ export const KnowledgeGraphPage = () => {
         setAuthToken(token);
       }
 
-      const result = await saveGraph(topic, nodes, edges, false, summary);
+      const result = await saveGraph(topic, nodes, edges, 'private', summary);
       setSavedUrl(result.url);
 
       // Navigate to the saved graph
@@ -350,6 +350,11 @@ export const KnowledgeGraphPage = () => {
                 className="graph-card"
                 onClick={() => navigate(`/graph/${graph.slug}`)}
               >
+                <div className="visibility-badge-overlay">
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐' : graph.visibility === 'premium' ? '💎' : '🔒'}
+                  </span>
+                </div>
                 <h3>{graph.topic}</h3>
                 {graph.summary && (
                   <p className="graph-card-summary">{graph.summary}</p>
@@ -361,8 +366,8 @@ export const KnowledgeGraphPage = () => {
                   <span className="views">{graph.viewCount} views</span>
                 </div>
                 <div className="graph-card-footer">
-                  <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
-                    {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐 Public' : graph.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                   </span>
                 </div>
               </div>
@@ -423,6 +428,11 @@ export const KnowledgeGraphPage = () => {
                 className="graph-card"
                 onClick={() => navigate(`/graph/${graph.slug}`)}
               >
+                <div className="visibility-badge-overlay">
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐' : graph.visibility === 'premium' ? '💎' : '🔒'}
+                  </span>
+                </div>
                 <h3>{graph.topic}</h3>
                 {graph.summary && (
                   <p className="graph-card-summary">{graph.summary}</p>
@@ -434,8 +444,8 @@ export const KnowledgeGraphPage = () => {
                   <span className="views">{graph.viewCount} views</span>
                 </div>
                 <div className="graph-card-footer">
-                  <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
-                    {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐 Public' : graph.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                   </span>
                 </div>
               </div>
@@ -458,6 +468,11 @@ export const KnowledgeGraphPage = () => {
                 className="graph-card"
                 onClick={() => navigate(`/graph/${graph.slug}`)}
               >
+                <div className="visibility-badge-overlay">
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐' : graph.visibility === 'premium' ? '💎' : '🔒'}
+                  </span>
+                </div>
                 <h3>{graph.topic}</h3>
                 {graph.summary && (
                   <p className="graph-card-summary">{graph.summary}</p>
@@ -469,8 +484,8 @@ export const KnowledgeGraphPage = () => {
                   <span className="views">{graph.viewCount} views</span>
                 </div>
                 <div className="graph-card-footer">
-                  <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
-                    {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐 Public' : graph.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                   </span>
                 </div>
               </div>
@@ -704,8 +719,8 @@ export const KnowledgeGraphPage = () => {
                       <span className="views">{graph.viewCount} views</span>
                     </div>
                     <div className="graph-card-footer">
-                      <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
-                        {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                      <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                        {graph.visibility === 'public' ? '🌐 Public' : graph.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                       </span>
                     </div>
                   </div>

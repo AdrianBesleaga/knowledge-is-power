@@ -106,10 +106,15 @@ export const ProfilePage = () => {
             {graphs.map((graph) => (
               <div
                 key={graph.id}
-                className="graph-card"
-                onClick={() => navigate(`/graph/${graph.slug}`)}
-              >
-                <h3>{graph.topic}</h3>
+              className="graph-card"
+              onClick={() => navigate(`/graph/${graph.slug}`)}
+            >
+              <div className="visibility-badge-overlay">
+                <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                  {graph.visibility === 'public' ? '🌐' : graph.visibility === 'premium' ? '💎' : '🔒'}
+                </span>
+              </div>
+              <h3>{graph.topic}</h3>
                 <div className="graph-card-meta">
                   <span className="date">
                     {new Date(graph.createdAt).toLocaleDateString()}
@@ -117,8 +122,8 @@ export const ProfilePage = () => {
                   <span className="views">{graph.viewCount} views</span>
                 </div>
                 <div className="graph-card-footer">
-                  <span className={`visibility-badge ${graph.isPublic ? 'public' : 'private'}`}>
-                    {graph.isPublic ? '🌐 Public' : '🔒 Private'}
+                  <span className={`visibility-badge ${graph.visibility === 'public' ? 'public' : graph.visibility === 'premium' ? 'premium' : 'private'}`}>
+                    {graph.visibility === 'public' ? '🌐 Public' : graph.visibility === 'premium' ? '💎 Premium' : '🔒 Private'}
                   </span>
                 </div>
               </div>

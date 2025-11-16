@@ -1,4 +1,5 @@
 // Timeline types for frontend
+export type GraphVisibility = 'private' | 'public' | 'premium';
 export interface TimelineEntry {
   date: string; // ISO date string
   value: number;
@@ -32,7 +33,7 @@ export interface TimelineAnalysis {
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
   userId: string | null;
-  isPublic: boolean;
+  visibility: GraphVisibility;
   viewCount: number;
   version?: number; // Version number (defaults to 1)
 }
@@ -53,6 +54,6 @@ export interface SaveTimelineRequest {
   pastEntries: TimelineEntry[];
   presentEntry: TimelineEntry;
   predictions: Prediction[];
-  isPublic?: boolean;
+  visibility?: GraphVisibility;
 }
 

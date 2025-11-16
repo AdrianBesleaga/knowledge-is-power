@@ -84,7 +84,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
  */
 router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { topic, summary, nodes, edges, isPublic } = req.body as SaveGraphRequest;
+    const { topic, summary, nodes, edges, visibility } = req.body as SaveGraphRequest;
 
     if (!topic || !nodes || !edges) {
       res.status(400).json({ error: 'Topic, nodes, and edges are required' });
@@ -102,7 +102,7 @@ router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) 
       nodes,
       edges,
       req.user.uid,
-      isPublic === true, // Default to false (private)
+      visibility || 'private', // Default to private
       summary || ''
     );
 
@@ -364,15 +364,15 @@ router.get('/popular', optionalAuth, async (req: AuthRequest, res: Response) => 
 router.patch('/:slug/visibility', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { slug } = req.params;
-    const { isPublic } = req.body;
+    const { visibility } = req.body;
 
     if (!slug) {
       res.status(400).json({ error: 'Slug is required' });
       return;
     }
 
-    if (typeof isPublic !== 'boolean') {
-      res.status(400).json({ error: 'isPublic must be a boolean' });
+    if (!visibility || !['private', 'public', 'premium'].includes(visibility)) {
+      res.status(400).json({ error: 'visibility must be one of: private, public, premium' });
       return;
     }
 
@@ -384,7 +384,7 @@ router.patch('/:slug/visibility', authenticateToken, async (req: AuthRequest, re
     const updatedGraph = await graphService.updateGraphVisibility(
       slug,
       req.user.uid,
-      isPublic
+      visibility as 'private' | 'public' | 'premium'
     );
 
     if (!updatedGraph) {
@@ -427,9 +427,33 @@ router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    // Check if graph is public or belongs to the requesting user
-    if (!graph.isPublic && (!req.user || req.user.uid !== graph.userId)) {
+    // Check visibility permissions
+    if (graph.visibility === 'private' && (!req.user || req.user.uid !== graph.userId)) {
       res.status(403).json({ error: 'Access denied to private graph' });
+      return;
+    }
+
+    // For premium graphs, check if user has paid or owns the graph
+    if (graph.visibility === 'premium' && (!req.user || req.user.uid !== graph.userId)) {
+      // TODO: Check if user has already paid for this specific graph view
+      // For now, return a "payment required" response
+      res.status(402).json({
+        error: 'Premium content requires payment',
+        message: 'This premium graph requires 1 credit to view',
+        code: 'PREMIUM_CONTENT',
+        graph: {
+          id: graph.id,
+          slug: graph.slug,
+          topic: graph.topic,
+          summary: graph.summary,
+          visibility: graph.visibility,
+          viewCount: graph.viewCount,
+          userId: graph.userId,
+          createdAt: graph.createdAt,
+          nodes: graph.nodes, // Include nodes for blurred preview
+          edges: graph.edges, // Include edges for blurred preview
+        }
+      });
       return;
     }
 
@@ -439,8 +463,85 @@ router.get('/:slug', optionalAuth, async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Error retrieving graph:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve knowledge graph',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * POST /api/graph/:slug/unlock
+ * Pay 1 credit to unlock premium graph content (requires authentication)
+ */
+router.post('/:slug/unlock', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug) {
+      res.status(400).json({ error: 'Slug is required' });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    console.log(`[API] Premium graph unlock request for slug: "${slug}" by user: ${req.user.uid}`);
+
+    // Get the graph first to verify it exists and is premium
+    const graph = await graphService.getGraphBySlug(slug);
+
+    if (!graph) {
+      console.log(`[API] Graph not found for slug: "${slug}"`);
+      res.status(404).json({ error: 'Knowledge graph not found' });
+      return;
+    }
+
+    if (graph.visibility !== 'premium') {
+      res.status(400).json({ error: 'This graph is not premium content' });
+      return;
+    }
+
+    if (graph.userId === req.user.uid) {
+      // Owner can access without payment
+      res.json({
+        success: true,
+        graph,
+      });
+      return;
+    }
+
+    // Deduct 1 credit for premium content access
+    try {
+      const remainingCredits = await creditService.deductCredits(
+        req.user.uid,
+        1,
+        `Unlocked premium graph: "${graph.topic}"`
+      );
+      console.log(`[API] Credit deducted for premium graph unlock. Remaining: ${remainingCredits}`);
+    } catch (error) {
+      if (error instanceof InsufficientCreditsError) {
+        res.status(402).json({
+          error: 'Insufficient credits',
+          message: error.message,
+          code: 'INSUFFICIENT_CREDITS'
+        });
+        return;
+      }
+      throw error;
+    }
+
+    // Return the full graph content
+    res.json({
+      success: true,
+      graph,
+    });
+  } catch (error) {
+    console.error('Error unlocking premium graph:', error);
+    res.status(500).json({
+      error: 'Failed to unlock premium graph',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

@@ -96,7 +96,7 @@ describe('AuthModal', () => {
     const modalContent = container.querySelector('.modal-content');
     const styles = window.getComputedStyle(modalContent as Element);
 
-    expect(styles.maxHeight).toBe('90vh');
+    expect(styles.maxHeight).toBe('calc(100vh - 4rem)');
     expect(styles.overflowY).toBe('auto');
   });
 
@@ -211,7 +211,7 @@ describe('AuthModal', () => {
     const styles = window.getComputedStyle(overlay as Element);
 
     // Should have padding to ensure modal doesn't touch screen edges
-    expect(styles.padding).toBe('1rem');
+    expect(styles.padding).toBe('2rem 1rem');
   });
 
   it('should have error message container in component structure', () => {

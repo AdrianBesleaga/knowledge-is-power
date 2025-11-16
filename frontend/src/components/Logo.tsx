@@ -27,10 +27,10 @@ export const Logo = ({ showText = true, onClick }: LogoProps) => {
       {showText && (
         <div className="flex flex-col">
           <span className="text-lg font-bold dark:text-white text-gray-900 tracking-tight">
-            KnowledgeGraph
+            Knowledge is Power
           </span>
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400 -mt-1">
-            AI-Powered Analysis
+            AI Powered Analysis
           </span>
         </div>
       )}

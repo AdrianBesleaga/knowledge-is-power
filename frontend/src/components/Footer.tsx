@@ -46,9 +46,9 @@ export const Footer = () => {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-600 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">KG</span>
+                <span className="text-white font-bold text-sm">KP</span>
               </div>
-              <span className="font-bold text-gray-900 dark:text-white">KnowledgeGraph</span>
+              <span className="font-bold text-gray-900 dark:text-white">Knowledge is Power</span>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               AI-powered knowledge analysis and prediction platform.
@@ -98,7 +98,7 @@ export const Footer = () => {
         <div className="pt-8 border-t border-gray-200 dark:border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              © {currentYear} KnowledgeGraph AI. All rights reserved.
+              © {currentYear} Knowledge is Power AI. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <a

@@ -40,7 +40,7 @@ export const creditService = {
       };
 
       await users.insertOne(newUser as any);
-      user = newUser;
+      return newUser;
     }
 
     return user;

@@ -571,10 +571,6 @@
 }
 
 /* Dark mode styles */
-.dark .chart-header h4 {
-  color: #e5e7eb;
-}
-
 .dark .sources-toggle {
   background: #1a1a24;
   border-color: #667eea;
@@ -587,25 +583,9 @@
   color: #818cf8;
 }
 
-.dark .recharts-cartesian-axis-tick-value {
-  fill: #9ca3af;
-}
-
-.dark .recharts-legend-item-text {
-  color: #e5e7eb;
-}
-
 .dark .recharts-default-tooltip {
   background: rgba(26, 26, 36, 0.98) !important;
   border-color: #2a2a38 !important;
-}
-
-.dark .recharts-tooltip-label {
-  color: #e5e7eb;
-}
-
-.dark .recharts-tooltip-item {
-  color: #9ca3af;
 }
 
 .dark .custom-tooltip {
@@ -619,10 +599,6 @@
 
 .dark .tooltip-summary-section {
   border-top-color: #2a2a38;
-}
-
-.dark .tooltip-summary-text {
-  color: #9ca3af;
 }
 
 .dark .prediction-inline-display {
@@ -642,14 +618,6 @@
 .dark .prediction-inline-scenario:hover {
   background: #232330;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.dark .scenario-inline-title {
-  color: #e5e7eb;
-}
-
-.dark .scenario-inline-summary {
-  color: #9ca3af;
 }
 
 .dark .scenario-inline-confidence {
@@ -675,16 +643,11 @@
   border-color: #667eea;
 }
 
-.dark .scenario-tooltip-title {
-  color: #e5e7eb;
-}
-
 .dark .scenario-tooltip-footer-inner {
   border-top-color: #2a2a38;
 }
 
 .dark .prediction-tooltip-footer {
   border-top-color: #2a2a38;
-  color: #6b7280;
 }
 

@@ -163,35 +163,20 @@
   border: 1px solid #2a2a38;
 }
 
-.dark .graph-legend h4 {
-  color: #e5e7eb;
-}
-
-.dark .legend-item {
-  color: #9ca3af;
-}
-
 .dark .legend-color.positive {
   background: rgba(16, 185, 129, 0.1);
-  border-color: #10b981;
 }
 
 .dark .legend-color.negative {
   background: rgba(239, 68, 68, 0.1);
-  border-color: #ef4444;
 }
 
 .dark .legend-color.neutral {
   background: linear-gradient(135deg, #667eea30 0%, #764ba230 100%);
-  border-color: #667eea;
 }
 
 .dark .legend-divider {
   background: #2a2a38;
-}
-
-.dark .legend-section-title {
-  color: #e5e7eb;
 }
 
 .dark .legend-line.weak {

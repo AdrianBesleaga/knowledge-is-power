@@ -809,10 +809,6 @@
 }
 
 /* Dark mode styles */
-.dark .chart-header h4 {
-  color: #e5e7eb;
-}
-
 .dark .sources-toggle {
   background: #1a1a24;
   border-color: #667eea;
@@ -844,55 +840,26 @@
 
 .dark .year-label {
   background: #1a1a24;
-  border-color: #667eea;
-}
-
-.dark .year-text {
-  color: #e5e7eb;
 }
 
 .dark .historical-content {
   background: rgba(102, 126, 234, 0.1);
-  border-color: #667eea;
-}
-
-.dark .historical-summary {
-  color: #9ca3af;
 }
 
 .dark .optimistic-column {
   background: rgba(16, 185, 129, 0.1);
-  border-color: #10b981;
 }
 
 .dark .neutral-column {
   background: rgba(245, 158, 11, 0.1);
-  border-color: #f59e0b;
 }
 
 .dark .pessimistic-column {
   background: rgba(239, 68, 68, 0.1);
-  border-color: #ef4444;
-}
-
-.dark .prediction-value {
-  color: #e5e7eb;
-}
-
-.dark .prediction-label {
-  color: #9ca3af;
-}
-
-.dark .prediction-summary {
-  color: #9ca3af;
 }
 
 .dark .prediction-confidence {
   border-top-color: #2a2a38;
-}
-
-.dark .confidence-label {
-  color: #9ca3af;
 }
 
 .dark .prediction-inline-display {
@@ -914,20 +881,8 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.dark .scenario-inline-title {
-  color: #e5e7eb;
-}
-
-.dark .scenario-inline-summary {
-  color: #9ca3af;
-}
-
 .dark .scenario-inline-sources {
   border-top-color: #2a2a38;
-}
-
-.dark .scenario-inline-sources-label {
-  color: #9ca3af;
 }
 
 .dark .scenario-inline-confidence {

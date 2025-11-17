@@ -62,7 +62,7 @@ type WorkflowInput = { input_as_text: string };
 export const runWorkflow = async (workflow: WorkflowInput) => {
   return await withTrace("Market_Data", async () => {
     const state = {
-      topic: null
+      topic: workflow.input_as_text
     };
     const conversationHistory: AgentInputItem[] = [
       { role: "user", content: [{ type: "input_text", text: workflow.input_as_text }] }

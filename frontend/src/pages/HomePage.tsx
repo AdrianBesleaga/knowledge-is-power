@@ -141,7 +141,7 @@ export const HomePage = () => {
           <div className="hero-content">
             <div className="hero-badge">
               <span className="badge-icon">✨</span>
-              <span className="badge-text">Powered by Advanced AI</span>
+              <span className="badge-text">Powered by AI</span>
             </div>
 
             <h1 className="hero-title">

@@ -85,7 +85,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
       presentEntry: savedTimeline.presentEntry,
       predictions: savedTimeline.predictions,
       timeline: savedTimeline,
-      url: `/timeline/${savedTimeline.slug}`,
+      url: `/predictions/${savedTimeline.slug}`,
     });
   } catch (error) {
     console.error('[API] Error generating timeline:', error);
@@ -128,7 +128,7 @@ router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) 
     res.json({
       success: true,
       timeline: savedTimeline,
-      url: `/timeline/${savedTimeline.slug}`,
+      url: `/predictions/${savedTimeline.slug}`,
     });
   } catch (error) {
     console.error('Error saving timeline:', error);

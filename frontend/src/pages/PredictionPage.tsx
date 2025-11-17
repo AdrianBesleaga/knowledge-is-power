@@ -645,6 +645,7 @@ export const PredictionPage = () => {
                     presentEntry={premiumTimelineData.presentEntry || { date: new Date().toISOString(), value: 0, valueLabel: 'Loading...', summary: 'Loading data...' }}
                     predictions={premiumTimelineData.predictions || []}
                     valueLabel={premiumTimelineData.valueLabel || 'Loading...'}
+                    valueDirection={premiumTimelineData.valueDirection || 'higher_is_better'}
                     onPredictionClick={() => {}}
                   />
                 </PremiumContentOverlay>
@@ -654,6 +655,7 @@ export const PredictionPage = () => {
                   presentEntry={reprocessedData?.presentEntry || timeline!.presentEntry}
                   predictions={reprocessedData?.predictions || timeline!.predictions}
                   valueLabel={timeline!.valueLabel}
+                  valueDirection={timeline!.valueDirection}
                   onPredictionClick={handlePredictionClick}
                 />
               )}
@@ -671,6 +673,7 @@ export const PredictionPage = () => {
                     presentEntry={premiumTimelineData.presentEntry || { date: new Date().toISOString(), value: 0, valueLabel: 'Loading...', summary: 'Loading data...' }}
                     predictions={premiumTimelineData.predictions || []}
                     valueLabel={premiumTimelineData.valueLabel || 'Loading...'}
+                    valueDirection={premiumTimelineData.valueDirection || 'higher_is_better'}
                   />
                 </PremiumContentOverlay>
               ) : (
@@ -679,6 +682,7 @@ export const PredictionPage = () => {
                   presentEntry={reprocessedData?.presentEntry || timeline!.presentEntry}
                   predictions={reprocessedData?.predictions || timeline!.predictions}
                   valueLabel={timeline!.valueLabel}
+                  valueDirection={timeline!.valueDirection}
                 />
               )}
             </div>
@@ -705,6 +709,7 @@ export const PredictionPage = () => {
         }}
         prediction={selectedPrediction}
         valueLabel={timeline?.valueLabel || ''}
+        valueDirection={timeline?.valueDirection || 'higher_is_better'}
       />
 
 

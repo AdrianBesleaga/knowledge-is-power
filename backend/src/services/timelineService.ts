@@ -1,5 +1,5 @@
 import { getMongoDB } from '../config/mongodb';
-import { TimelineAnalysis, TimelineEntry, GraphVisibility } from '../types';
+import { TimelineAnalysis, TimelineEntry, GraphVisibility, ValueDirection } from '../types';
 import { generateSlug } from '../utils/slugify';
 import { ObjectId } from 'mongodb';
 
@@ -15,6 +15,7 @@ export class TimelineService {
   async saveTimeline(
     topic: string,
     valueLabel: string,
+    valueDirection: ValueDirection,
     pastEntries: TimelineEntry[],
     presentEntry: TimelineEntry,
     predictions: any[],
@@ -49,6 +50,7 @@ export class TimelineService {
       const updated = {
         topic,
         valueLabel,
+        valueDirection,
         pastEntries: pastEntries.map(e => ({
           ...e,
           date: e.date instanceof Date ? e.date : new Date(e.date),
@@ -81,6 +83,7 @@ export class TimelineService {
       slug,
       topic,
       valueLabel,
+      valueDirection,
       pastEntries: pastEntries.map(e => ({
         ...e,
         date: e.date instanceof Date ? e.date : new Date(e.date),
@@ -165,6 +168,7 @@ export class TimelineService {
     slug: string,
     topic: string,
     valueLabel: string,
+    valueDirection: ValueDirection,
     pastEntries: TimelineEntry[],
     presentEntry: TimelineEntry,
     predictions: any[],
@@ -199,6 +203,7 @@ export class TimelineService {
       version: newVersion,
       topic,
       valueLabel,
+      valueDirection,
       pastEntries: pastEntries.map(e => ({
         ...e,
         date: e.date instanceof Date ? e.date : new Date(e.date),
@@ -465,6 +470,7 @@ export class TimelineService {
       slug: doc.slug,
       topic: doc.topic,
       valueLabel: doc.valueLabel,
+      valueDirection: doc.valueDirection || 'higher_is_better',
       pastEntries: (doc.pastEntries || []).map((e: any) => ({
         ...e,
         date: e.date instanceof Date ? e.date : new Date(e.date),

@@ -1,5 +1,7 @@
 // Timeline types for frontend
 export type GraphVisibility = 'private' | 'public' | 'premium';
+export type ValueDirection = 'higher_is_better' | 'lower_is_better' | 'neutral';
+
 export interface TimelineEntry {
   date: string; // ISO date string
   value: number;
@@ -27,6 +29,7 @@ export interface TimelineAnalysis {
   slug: string;
   topic: string;
   valueLabel: string; // Auto-detected value label
+  valueDirection: ValueDirection; // Whether higher or lower values are better
   pastEntries: TimelineEntry[]; // Up to 10 years back
   presentEntry: TimelineEntry; // Current state
   predictions: Prediction[]; // Fixed intervals: 1m, 1y, 2y-10y

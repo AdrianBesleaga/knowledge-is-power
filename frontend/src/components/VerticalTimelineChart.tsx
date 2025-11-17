@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { TimelineEntry, Prediction } from '../types/timeline';
+import { TimelineEntry, Prediction, ValueDirection } from '../types/timeline';
 import { Sources } from './Sources';
 import './VerticalTimelineChart.css';
 
@@ -8,6 +8,7 @@ interface VerticalTimelineChartProps {
   presentEntry: TimelineEntry;
   predictions: Prediction[];
   valueLabel: string;
+  valueDirection?: ValueDirection;
 }
 
 export const VerticalTimelineChart = ({
@@ -15,6 +16,7 @@ export const VerticalTimelineChart = ({
   presentEntry,
   predictions,
   valueLabel,
+  valueDirection = 'higher_is_better',
 }: VerticalTimelineChartProps) => {
   const [_isMobile, setIsMobile] = useState<boolean>(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -76,10 +78,14 @@ export const VerticalTimelineChart = ({
     const scenariosWithValues = scenarios.filter((s) => s.predictedValue !== undefined);
     
     if (scenariosWithValues.length >= 3) {
-      const sorted = [...scenariosWithValues].sort((a, b) => 
-        (b.predictedValue || 0) - (a.predictedValue || 0)
-      );
-      
+      // Sort based on directionality
+      const isHigherBetter = valueDirection === 'higher_is_better';
+      const sorted = [...scenariosWithValues].sort((a, b) => {
+        const aVal = a.predictedValue || 0;
+        const bVal = b.predictedValue || 0;
+        return isHigherBetter ? (bVal - aVal) : (aVal - bVal);
+      });
+
       return {
         optimistic: {
           value: sorted[0]?.predictedValue ?? null,

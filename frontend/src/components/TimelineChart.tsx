@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { TimelineEntry, Prediction } from '../types/timeline';
+import { TimelineEntry, Prediction, ValueDirection } from '../types/timeline';
 import { Sources } from './Sources';
 import './TimelineChart.css';
 import { useTheme } from '../contexts/ThemeContext';
@@ -10,6 +10,7 @@ interface TimelineChartProps {
   presentEntry: TimelineEntry;
   predictions: Prediction[];
   valueLabel: string;
+  valueDirection: ValueDirection;
   onPredictionClick?: (prediction: Prediction) => void;
 }
 
@@ -87,10 +88,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // Inline prediction display component that shows all 3 scenarios horizontally
 interface PredictionInlineDisplayProps {
   prediction: Prediction;
+  valueDirection: ValueDirection;
   onPredictionClick?: (prediction: Prediction) => void;
 }
 
-const PredictionInlineDisplay = ({ prediction, onPredictionClick }: PredictionInlineDisplayProps) => {
+const PredictionInlineDisplay = ({ prediction, valueDirection, onPredictionClick }: PredictionInlineDisplayProps) => {
   const getConfidenceColor = (score: number): string => {
     if (score >= 70) return '#10b981';
     if (score >= 40) return '#f59e0b';
@@ -100,13 +102,16 @@ const PredictionInlineDisplay = ({ prediction, onPredictionClick }: PredictionIn
   // Helper function to get border color based on scenario type
   const getScenarioBorderColor = (scenario: { title: string; predictedValue?: number }, allScenarios: Array<{ title: string; predictedValue?: number }>): string => {
     const scenariosWithValues = allScenarios.filter((s) => s.predictedValue !== undefined);
-    
-    // If we have 3+ scenarios, categorize by value
+
+    // If we have 3+ scenarios, categorize by value based on directionality
     if (scenariosWithValues.length >= 3) {
-      const sorted = [...scenariosWithValues].sort((a, b) => 
-        (b.predictedValue || 0) - (a.predictedValue || 0)
-      );
-      
+      const isHigherBetter = valueDirection === 'higher_is_better';
+      const sorted = [...scenariosWithValues].sort((a, b) => {
+        const aVal = a.predictedValue || 0;
+        const bVal = b.predictedValue || 0;
+        return isHigherBetter ? (bVal - aVal) : (aVal - bVal);
+      });
+
       if (scenario.predictedValue === sorted[0]?.predictedValue) {
         return '#10b981'; // Optimistic (green)
       } else if (scenario.predictedValue === sorted[sorted.length - 1]?.predictedValue) {
@@ -130,27 +135,30 @@ const PredictionInlineDisplay = ({ prediction, onPredictionClick }: PredictionIn
   // Helper function to sort scenarios in order: optimistic, neutral, pessimistic
   const sortScenarios = (scenarios: Array<{ title: string; predictedValue?: number; id: string; summary?: string; sources?: string[]; confidenceScore?: number }>) => {
     const scenariosWithValues = scenarios.filter((s) => s.predictedValue !== undefined);
-    
-    // If we have 3+ scenarios, sort by value
+
+    // If we have 3+ scenarios, sort by value based on directionality
     if (scenariosWithValues.length >= 3) {
-      const sorted = [...scenariosWithValues].sort((a, b) => 
-        (b.predictedValue || 0) - (a.predictedValue || 0)
-      );
-      
+      const isHigherBetter = valueDirection === 'higher_is_better';
+      const sorted = [...scenariosWithValues].sort((a, b) => {
+        const aVal = a.predictedValue || 0;
+        const bVal = b.predictedValue || 0;
+        return isHigherBetter ? (bVal - aVal) : (aVal - bVal);
+      });
+
       const optimistic = sorted[0];
       const pessimistic = sorted[sorted.length - 1];
       const neutral = sorted.length >= 3 ? sorted[1] : sorted[0];
-      
+
       // Return in order: optimistic, neutral, pessimistic
       const result: Array<typeof scenarios[0]> = [];
       if (optimistic) result.push(optimistic);
       if (neutral && neutral !== optimistic) result.push(neutral);
       if (pessimistic && pessimistic !== optimistic && pessimistic !== neutral) result.push(pessimistic);
-      
+
       // Add any scenarios without values at the end
       const scenariosWithoutValues = scenarios.filter((s) => s.predictedValue === undefined);
       result.push(...scenariosWithoutValues);
-      
+
       return result;
     }
     
@@ -250,6 +258,7 @@ export const TimelineChart = ({
   presentEntry,
   predictions,
   valueLabel,
+  valueDirection,
   onPredictionClick,
 }: TimelineChartProps) => {
   const { theme } = useTheme();
@@ -276,28 +285,33 @@ export const TimelineChart = ({
     const scenariosWithValues = scenarios.filter((s) => s.predictedValue !== undefined);
     if (scenariosWithValues.length < 3) {
       // If we don't have 3 scenarios, try to identify by title
-      const optimistic = scenariosWithValues.find((s) => 
+      const optimistic = scenariosWithValues.find((s) =>
         /optimistic|bullish|strong|positive|growth/i.test(s.title)
       );
-      const pessimistic = scenariosWithValues.find((s) => 
+      const pessimistic = scenariosWithValues.find((s) =>
         /pessimistic|bearish|weak|negative|decline/i.test(s.title)
       );
-      const neutral = scenariosWithValues.find((s) => 
+      const neutral = scenariosWithValues.find((s) =>
         /neutral|moderate|stable|baseline/i.test(s.title)
       );
-      
+
       return {
         optimistic: optimistic?.predictedValue ?? null,
         neutral: neutral?.predictedValue ?? null,
         pessimistic: pessimistic?.predictedValue ?? null,
       };
     }
-    
-    // Sort by value: highest = optimistic, middle = neutral, lowest = pessimistic
-    const sorted = [...scenariosWithValues].sort((a, b) => 
-      (b.predictedValue || 0) - (a.predictedValue || 0)
-    );
-    
+
+    // Sort by value based on directionality
+    // For higher_is_better: highest = optimistic, middle = neutral, lowest = pessimistic
+    // For lower_is_better: lowest = optimistic, middle = neutral, highest = pessimistic
+    const isHigherBetter = valueDirection === 'higher_is_better';
+    const sorted = [...scenariosWithValues].sort((a, b) => {
+      const aVal = a.predictedValue || 0;
+      const bVal = b.predictedValue || 0;
+      return isHigherBetter ? (bVal - aVal) : (aVal - bVal);
+    });
+
     return {
       optimistic: sorted[0]?.predictedValue ?? null,
       neutral: sorted.length >= 3 ? sorted[1]?.predictedValue ?? null : sorted[0]?.predictedValue ?? null,
@@ -837,6 +851,7 @@ export const TimelineChart = ({
           >
             <PredictionInlineDisplay
               prediction={hoveredPrediction}
+              valueDirection={valueDirection}
               onPredictionClick={onPredictionClick}
             />
           </div>

@@ -10,13 +10,18 @@ const webSearchPreview = webSearchTool({
     type: "approximate"
   }
 })
-const WebResearchAgentSchema = z.object({ valueLabel: z.string(), current: z.object({ value: z.number(), summary: z.string(), sources: z.array(z.string()) }), historical: z.array(z.object({ date: z.string(), value: z.number(), eventType: z.enum(["pump", "dump", "bull_market_start", "bull_market_end", "bear_market_start", "bear_market_end", "major_event"]), summary: z.string(), sources: z.array(z.string()) })), predictions: z.array(z.object({ timeline: z.string(), scenarios: z.array(z.object({ title: z.string(), predictedValue: z.number(), summary: z.string(), sources: z.array(z.string()), confidenceScore: z.number() })) })) });
+const WebResearchAgentSchema = z.object({ valueLabel: z.string(), valueDirection: z.enum(["higher_is_better", "lower_is_better", "neutral"]), current: z.object({ value: z.number(), summary: z.string(), sources: z.array(z.string()) }), historical: z.array(z.object({ date: z.string(), value: z.number(), eventType: z.enum(["pump", "dump", "bull_market_start", "bull_market_end", "bear_market_start", "bear_market_end", "major_event"]), summary: z.string(), sources: z.array(z.string()) })), predictions: z.array(z.object({ timeline: z.string(), scenarios: z.array(z.object({ title: z.string(), predictedValue: z.number(), summary: z.string(), sources: z.array(z.string()), confidenceScore: z.number() })) })) });
 interface WebResearchAgentContext {
   stateTopic: string;
 }
 const webResearchAgentInstructions = (runContext: RunContext<WebResearchAgentContext>, _agent: Agent<WebResearchAgentContext, typeof WebResearchAgentSchema>) => {
   const { stateTopic } = runContext.context;
   return `You are an expert financial analyst with full web access. Complete comprehensive timeline analyses by searching current market data, historical archives, and news sources. Provide accurate, verifiable data with proper sources.
+
+FIRST, determine the VALUE DIRECTION: Analyze the topic and determine whether higher values are better, lower values are better, or if it's neutral. For example:
+- For "bitcoin price" or "stock price" → "higher_is_better" (higher prices are more desirable)
+- For "next recession date" or "unemployment rate" → "lower_is_better" (lower/earlier values are more desirable)
+- For "temperature" or "neutral topics" → "neutral" (neither higher nor lower is inherently better)
 
 The time intervals are: ['1 month', '1 year', '2 years', '3 years', '4 years', '5 years', '6 years', '7 years', '8 years', '9 years', '10 years']
 

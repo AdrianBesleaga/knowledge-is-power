@@ -64,6 +64,11 @@ export class PredictionService {
       const valueLabel = (parsed?.valueLabel as string) || 'Value';
       console.log(`[Timeline Generation] Detected value label: "${valueLabel}"`);
 
+      // Extract value direction
+      console.log(`[Timeline Generation] Extracting value direction...`);
+      const valueDirection = (parsed?.valueDirection as 'higher_is_better' | 'lower_is_better' | 'neutral') || 'higher_is_better';
+      console.log(`[Timeline Generation] Detected value direction: "${valueDirection}"`);
+
       // Parse current state
       console.log(`[Timeline Generation] Parsing current state...`);
       const current = parsed?.current as any;
@@ -168,6 +173,7 @@ export class PredictionService {
       return {
         topic,
         valueLabel,
+        valueDirection,
         pastEntries: sortedPastEntries,
         presentEntry,
         predictions: sortedPredictions,

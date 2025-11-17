@@ -1,4 +1,4 @@
-import { Prediction } from '../types/timeline';
+import { Prediction, ValueDirection } from '../types/timeline';
 import { Sources } from './Sources';
 import './PredictionModal.css';
 
@@ -7,9 +7,10 @@ interface PredictionModalProps {
   onClose: () => void;
   prediction: Prediction | null;
   valueLabel: string;
+  valueDirection: ValueDirection;
 }
 
-export const PredictionModal = ({ isOpen, onClose, prediction, valueLabel }: PredictionModalProps) => {
+export const PredictionModal = ({ isOpen, onClose, prediction, valueLabel, valueDirection }: PredictionModalProps) => {
   const getConfidenceColor = (score: number): string => {
     if (score >= 70) return '#10b981';
     if (score >= 40) return '#f59e0b';
@@ -20,11 +21,14 @@ export const PredictionModal = ({ isOpen, onClose, prediction, valueLabel }: Pre
   const getScenarioBorderColor = (scenario: { title: string; predictedValue?: number }, allScenarios: Array<{ title: string; predictedValue?: number }>): string => {
     const scenariosWithValues = allScenarios.filter((s) => s.predictedValue !== undefined);
 
-    // If we have 3+ scenarios, categorize by value
+    // If we have 3+ scenarios, categorize by value based on directionality
     if (scenariosWithValues.length >= 3) {
-      const sorted = [...scenariosWithValues].sort((a, b) =>
-        (b.predictedValue || 0) - (a.predictedValue || 0)
-      );
+      const isHigherBetter = valueDirection === 'higher_is_better';
+      const sorted = [...scenariosWithValues].sort((a, b) => {
+        const aVal = a.predictedValue || 0;
+        const bVal = b.predictedValue || 0;
+        return isHigherBetter ? (bVal - aVal) : (aVal - bVal);
+      });
 
       if (scenario.predictedValue === sorted[0]?.predictedValue) {
         return '#10b981'; // Optimistic (green)
@@ -50,11 +54,14 @@ export const PredictionModal = ({ isOpen, onClose, prediction, valueLabel }: Pre
   const sortScenarios = (scenarios: Array<{ title: string; predictedValue?: number; id: string; summary?: string; sources?: string[]; confidenceScore?: number }>) => {
     const scenariosWithValues = scenarios.filter((s) => s.predictedValue !== undefined);
 
-    // If we have 3+ scenarios, sort by value
+    // If we have 3+ scenarios, sort by value based on directionality
     if (scenariosWithValues.length >= 3) {
-      const sorted = [...scenariosWithValues].sort((a, b) =>
-        (b.predictedValue || 0) - (a.predictedValue || 0)
-      );
+      const isHigherBetter = valueDirection === 'higher_is_better';
+      const sorted = [...scenariosWithValues].sort((a, b) => {
+        const aVal = a.predictedValue || 0;
+        const bVal = b.predictedValue || 0;
+        return isHigherBetter ? (bVal - aVal) : (aVal - bVal);
+      });
 
       const optimistic = sorted[0];
       const pessimistic = sorted[sorted.length - 1];

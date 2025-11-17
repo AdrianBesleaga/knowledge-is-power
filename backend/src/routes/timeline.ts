@@ -68,6 +68,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
     const savedTimeline = await timelineService.saveTimeline(
       analysis.topic,
       analysis.valueLabel,
+      analysis.valueDirection,
       analysis.pastEntries,
       analysis.presentEntry,
       analysis.predictions,
@@ -102,7 +103,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res: Respon
  */
 router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { topic, valueLabel, pastEntries, presentEntry, predictions, visibility } = req.body;
+    const { topic, valueLabel, valueDirection, pastEntries, presentEntry, predictions, visibility } = req.body;
 
     if (!topic || !valueLabel || !pastEntries || !presentEntry || !predictions) {
       res.status(400).json({ error: 'Topic, valueLabel, pastEntries, presentEntry, and predictions are required' });
@@ -118,6 +119,7 @@ router.post('/save', authenticateToken, async (req: AuthRequest, res: Response) 
     const savedTimeline = await timelineService.saveTimeline(
       topic,
       valueLabel,
+      valueDirection || 'higher_is_better',
       pastEntries,
       presentEntry,
       predictions,
@@ -428,6 +430,7 @@ router.post('/:slug/save-version', authenticateToken, async (req: AuthRequest, r
       slug,
       existingTimeline.topic,
       existingTimeline.valueLabel,
+      existingTimeline.valueDirection,
       existingTimeline.pastEntries,
       presentEntry,
       predictions,

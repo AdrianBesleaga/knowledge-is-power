@@ -82,11 +82,14 @@ export interface Prediction {
   scenarios: PredictionScenario[]; // Minimum 3 scenarios
 }
 
+export type ValueDirection = 'higher_is_better' | 'lower_is_better' | 'neutral';
+
 export interface TimelineAnalysis {
   id: string;
   slug: string;
   topic: string;
   valueLabel: string; // Auto-detected value label
+  valueDirection: ValueDirection; // Whether higher or lower values are better
   pastEntries: TimelineEntry[]; // Up to 10 years back
   presentEntry: TimelineEntry; // Current state
   predictions: Prediction[]; // Fixed intervals: 1m, 1y, 2y-10y

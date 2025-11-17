@@ -4,7 +4,7 @@ import { z } from "zod";
 
 // Tool definitions
 const webSearchPreview = webSearchTool({
-  searchContextSize: "medium",
+  searchContextSize: "low",
   userLocation: {
     country: "US",
     type: "approximate"
@@ -34,6 +34,8 @@ For each scenario provide:
 4. CONFIDENCE score (0-100) based on current market data and historical precedents
 
 Focus on realistic, data-driven predictions. Consider both bullish and bearish catalysts.
+NEVER ASK FOR CLARIFICATIONS!
+JUST RETURN THE RESPONSE IN THE GIVEN JSON SCHEMA FORMAT.
 
 The topic: ${stateTopic}`
 }
